@@ -787,6 +787,13 @@ window.PKM = window.PKM || {};
       rect(c, 6, 7, 12, 10, '#e8dfc5'); rect(c, 7, 8, 10, 4, '#6f9f4d');
       rect(c, 8, 14, 8, 1, '#8d7a5a'); rect(c, 8, 16, 5, 1, '#8d7a5a');
       rect(c, 19, 7, 2, 4, '#e4c14c');
+    } else if (kind === 'tm') {
+      rect(c, 3, 5, 18, 15, '#243a2c'); rect(c, 4, 6, 16, 13, '#4b7a55');
+      rect(c, 5, 7, 14, 4, '#d9e6b7');
+      rect(c, 6, 8, 5, 2, '#8fb06a'); rect(c, 13, 8, 5, 2, '#8fb06a');
+      ell(c, 12, 15, 5, 3, '#243a2c'); ell(c, 12, 15, 4, 2, '#f0d58a');
+      rect(c, 10, 14, 4, 1, '#fff6cf'); rect(c, 20, 11, 2, 3, '#e4c14c');
+      rect(c, 3, 19, 18, 2, '#16241b');
     } else if (kind === 'badge') {
       ell(c, 12, 12, 9, 9, '#6b5a2a'); ell(c, 12, 12, 8, 8, '#e4c14c');
       ell(c, 12, 12, 5, 5, '#f8e6a8');

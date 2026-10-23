@@ -9,7 +9,7 @@ window.PKM = window.PKM || {};
   const G = PKM.GAME;
 
   const CAT_LABEL = {
-    ball: '精灵球', medicine: '药品', berry: '树果', key: '重要物品', treasure: '宝物'
+    ball: '精灵球', medicine: '药品', berry: '树果', key: '重要物品', treasure: '宝物', tm: '学习机'
   };
 
   const UI = {
@@ -31,6 +31,7 @@ window.PKM = window.PKM || {};
     introStarter: null,
     introName: '小森',
     menuTab: 'party',
+    trainIndex: 0,
     bagSel: null,
     dexFilter: 'all',
     starterIndex: 0,
@@ -63,6 +64,7 @@ window.PKM = window.PKM || {};
         minimapTime: $('minimap-time'), minimapOpen: $('minimap-open'),
         prompt: $('interact-prompt'), promptText: $('interact-text'),
         toast: $('toast-layer'),
+        mbqTitle: $('mbq-title'), mbqHint: $('mbq-hint'),
         mapBanner: $('map-banner'), bannerName: $('map-banner-name'), bannerSub: $('map-banner-sub'),
         dialogueLayer: $('dialogue-layer'), dialogueSpeaker: $('dialogue-speaker'),
         dialogueText: $('dialogue-text'), dialogueNext: $('dialogue-next'), dialogueChoices: $('dialogue-choices'),
@@ -202,9 +204,10 @@ window.PKM = window.PKM || {};
           <b>M</b><span>打开旅途地图与快速移动</span>
           <b>对话中</b><span>点击或按 Z 继续；再按一次可跳过打字</span>
           <b>战斗中</b><span>点击按钮，或用方向键选择、Z 确认</span>
-          <b>触屏</b><span>左下方向键，右下 A / B</span>
+          <b>触屏</b><span>左下摇杆（按下并拖动可连续转向），右下 A / B</span>
+          <b>手机竖屏</b><span>画面在上、按键在下，直接可以玩；点「全屏」并横过来视野更宽</span>
         </div>
-        <div class="modal-text" style="margin-top:14px;">捕捉野生宝可梦、收集图鉴、完成支线，再带着伙伴去森林深处。就算暂时输掉，也不会丢失伙伴。</div>
+        <div class="modal-text" style="margin-top:14px;">捕捉野生宝可梦、收集图鉴、完成支线，再带着伙伴去森林深处。战斗升级会获得技能点，可以在旅人手记的「特训」页强化招式和能力。</div>
         <div class="modal-actions"><button class="pixel-btn" data-modal-close>知道了</button></div>
       `);
     },
@@ -417,10 +420,23 @@ window.PKM = window.PKM || {};
       const q = D.QUESTS[tracked] || D.QUESTS.main;
       const qs = G.questState(tracked);
       this.el.questText.textContent = `${q.title} · ${qs.hint}`;
+      if (this.el.mbqTitle) {
+        this.el.mbqTitle.textContent = q.title;
+        this.el.mbqHint.textContent = qs.hint;
+      }
       const sig = s.party.map(m => `${m.species}:${m.level}:${m.hp}:${m.maxHp}:${m.status}`).join('|') + '|' + s.money + '|' + s.party.length;
       if (sig !== this.partySig) {
         this.partySig = sig;
         this.renderPartyDock();
+      }
+      // 成就检测：等没有遮挡时再弹出，避免提示被面板盖住
+      if (!PKM.BATTLE.active && !this.dialogOpen && !this.modalOpen && !this.menuOpen &&
+        !this.shopOpen && !this.mapOpen && !this.transitioning && !this.endingActive) {
+        const unlocked = G.checkAchievements();
+        for (const a of unlocked) {
+          PKM.AUDIO.sfx('sparkle');
+          this.toast(`成就达成：${a.name}`, 'badge', 'quest');
+        }
       }
     },
 
@@ -1383,19 +1399,24 @@ window.PKM = window.PKM || {};
     renderMenu() {
       const s = G.state;
       const tabs = [
-        ['party', '队伍'], ['bag', '背包'], ['dex', '图签'], ['quests', '任务'], ['save', '存档'], ['settings', '设置']
+        ['party', '队伍'], ['train', '特训'], ['bag', '背包'], ['dex', '图签'], ['quests', '任务'], ['ach', '成就'], ['save', '存档'], ['settings', '设置']
       ];
       this.el.menuTabs.innerHTML = tabs.map(([id, name]) =>
         `<button class="menu-tab ${this.menuTab === id ? 'active' : ''}" data-tab="${id}">${this.menuTab === id ? '<span class="tab-dot"></span>' : ''}${name}</button>`).join('');
       this.el.menuName.textContent = s.name;
       this.el.menuMoney.textContent = '₽ ' + s.money;
-      this.el.menuTitle.textContent = ({ party: '队伍与行囊', bag: '旅人行囊', dex: '怪物图签', quests: '旅人任务', save: '旅程记录', settings: '设置' })[this.menuTab];
-      this.el.menuFootNote.textContent = `图鉴 ${Object.keys(s.dexCaught).length}/${D.DEX_ORDER.length} · ${G.playSecondsLabel()}`;
+      this.el.menuTitle.textContent = ({ party: '队伍与行囊', train: '特训与招式', bag: '旅人行囊', dex: '怪物图签', quests: '旅人任务', ach: '森林成就', save: '旅程记录', settings: '设置' })[this.menuTab];
+      const spTotal = s.party.reduce((a, m) => a + (m.sp || 0), 0);
+      this.el.menuFootNote.textContent = spTotal > 0
+        ? `未分配技能点 ${spTotal} · 图鉴 ${Object.keys(s.dexCaught).length}/${D.DEX_ORDER.length}`
+        : `图鉴 ${Object.keys(s.dexCaught).length}/${D.DEX_ORDER.length} · ${G.playSecondsLabel()}`;
       const render = {
         party: () => this.renderPartyTab(),
+        train: () => this.renderTrainTab(),
         bag: () => this.renderBagTab(),
         dex: () => this.renderDexTab(),
         quests: () => this.renderQuestTab(),
+        ach: () => this.renderAchievementsTab(),
         save: () => this.renderSaveTab(),
         settings: () => this.renderSettingsTab()
       }[this.menuTab];
@@ -1413,7 +1434,7 @@ window.PKM = window.PKM || {};
             <div class="card-name"><span>${G.nameOf(m)}</span><span class="card-lv">Lv.${m.level}</span></div>
             <div class="type-row">${sp.types.map(t => `<span class="type-badge" style="background:${D.TYPES[t].color}">${D.TYPES[t].name}</span>`).join('')}</div>
             <div class="card-hp-row"><div class="hp-track"><i class="${pct < 22 ? 'low' : pct < 50 ? 'mid' : ''}" style="width:${pct}%"></i></div><small>${Math.max(0, m.hp)}/${m.maxHp}</small></div>
-            ${m.status ? `<span class="status-chip ${m.status}" style="margin-top:4px">${({ burn: '灼伤', poison: '中毒', par: '麻痹', sleep: '睡眠' })[m.status]}</span>` : ''}
+            <div class="card-tags">${(m.sp || 0) > 0 ? `<span class="card-sp">SP ${m.sp}</span>` : ''}${m.status ? `<span class="status-chip ${m.status}">${({ burn: '灼伤', poison: '中毒', par: '麻痹', sleep: '睡眠' })[m.status]}</span>` : ''}</div>
           </div>
         </div>`;
       }).join('');
@@ -1476,11 +1497,13 @@ window.PKM = window.PKM || {};
       ].map(([name, val, max]) => `<div class="stat-line"><span>${name}</span><div class="stat-track"><i style="width:${Math.min(100, val / max * 100)}%"></i></div><b style="font:700 9px Consolas;color:#6d5c41">${val}</b></div>`).join('');
       const moves = m.moves.map(mv => {
         const move = D.MOVES[mv.id];
+        const eff = G.effMove(m, mv);
         return `<div class="move-pill" style="--move-color:${D.TYPES[move.type].color}">
-          <b>${move.name}</b>
-          <small>${D.TYPES[move.type].name} · ${move.cat === 'status' ? '变化' : '威力 ' + move.power} · PP ${mv.pp}/${mv.maxPp}</small>
+          <b>${move.name}${eff.rank > 1 ? ` <i class="move-pill-rank">Lv.${eff.rank}</i>` : ''}</b>
+          <small>${D.TYPES[move.type].name} · ${move.cat === 'status' ? '变化' : '威力 ' + eff.power} · PP ${mv.pp}/${mv.maxPp}</small>
         </div>`;
       }).join('');
+      const trainText = Object.entries(D.TRAINING).map(([k, t]) => `${t.short} ${m.training[k] || 0}`).join(' · ');
       const evo = sp.evolve ? `会在 Lv.${sp.evolve.level} 左右成长` : '已经成长为成熟的形态';
       this.openModal(`
         <div class="modal-head">
@@ -1490,6 +1513,7 @@ window.PKM = window.PKM || {};
             <div class="modal-sub">NO.${String(sp.no).padStart(3, '0')} · ${sp.habitat}</div>
             <div class="type-row" style="margin-top:6px">${sp.types.map(t => `<span class="type-badge" style="background:${D.TYPES[t].color}">${D.TYPES[t].name}</span>`).join('')}</div>
             <div class="modal-sub" style="margin-top:6px">Lv.${m.level} · 经验 ${m.exp}/${need} · ${m.status ? '状态：' + ({ burn: '灼伤', poison: '中毒', par: '麻痹', sleep: '睡眠' })[m.status] : '状态良好'}</div>
+            <div class="modal-sub" style="margin-top:4px">技能点 <b style="color:#a8792c">${m.sp || 0}</b> · 特训 ${trainText}</div>
           </div>
         </div>
         <div class="modal-text">${sp.desc}</div>
@@ -1499,6 +1523,8 @@ window.PKM = window.PKM || {};
         <div class="modal-sub">相遇：${D.MAPS[m.met] ? D.MAPS[m.met].name : '旅途中'} · Lv.${m.metLevel}</div>
         <div class="modal-actions">
           ${index > 0 && m.hp > 0 ? '<button class="pixel-btn gold" id="detail-lead">设为首发</button>' : ''}
+          <button class="pixel-btn gold" id="detail-train">去特训</button>
+          <button class="pixel-btn" id="detail-rename">改名</button>
           <button class="pixel-btn" data-modal-close>关闭</button>
         </div>`);
       PKM.ART.drawMonsterCanvas(document.getElementById('detail-sprite'), m.species, 0, false);
@@ -1510,6 +1536,227 @@ window.PKM = window.PKM || {};
         this.updateHUD();
         PKM.AUDIO.sfx('sparkle');
         this.toast(`${G.nameOf(m)}成为了队首`, null, 'g');
+      });
+      document.getElementById('detail-train').addEventListener('click', () => {
+        this.closeModal();
+        this.menuTab = 'train';
+        this.trainIndex = index;
+        PKM.AUDIO.sfx('select');
+        this.renderMenu();
+      });
+      document.getElementById('detail-rename').addEventListener('click', () => this.promptRename(index));
+    },
+
+    promptRename(index) {
+      const m = G.state.party[index];
+      if (!m) return;
+      this.openModal(`
+        <h2 class="confirm-title">给伙伴取个名字</h2>
+        <div class="confirm-text">最多 6 个字。留空会恢复原本的名字。</div>
+        <div class="name-row" style="margin-top:14px">
+          <input id="rename-input" maxlength="6" value="${m.nickname || D.SPECIES[m.species].name}" autocomplete="off" spellcheck="false">
+          <button class="pixel-btn gold" id="rename-ok">确认</button>
+        </div>
+        <div class="modal-actions"><button class="pixel-btn" data-modal-close>取消</button></div>`);
+      const input = document.getElementById('rename-input');
+      input.focus();
+      input.select();
+      const apply = () => {
+        G.renameMon(m, input.value);
+        PKM.AUDIO.sfx('sparkle');
+        this.closeModal();
+        this.renderMenu();
+        this.updateHUD();
+        this.toast(`现在叫它「${G.nameOf(m)}」`, null, 'g');
+      };
+      document.getElementById('rename-ok').addEventListener('click', apply);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); apply(); }
+      });
+    },
+
+    /* ============================================================
+       特训 / 招式强化 / 学习机
+       ============================================================ */
+    renderTrainTab() {
+      const s = G.state;
+      if (!s.party.length) { this.el.menuBody.innerHTML = '<div class="bag-empty">还没有伙伴。</div>'; return; }
+      const index = Math.min(Math.max(0, this.trainIndex || 0), s.party.length - 1);
+      this.trainIndex = index;
+      const mon = s.party[index];
+      const sp = D.SPECIES[mon.species];
+      const spNow = mon.sp || 0;
+
+      const roster = s.party.map((m, i) => `<button class="train-roster-row ${i === index ? 'sel' : ''}" data-train-mon="${i}">
+          <canvas width="40" height="40" data-train-sprite="${i}"></canvas>
+          <span class="tr-name">${G.nameOf(m)}<small>Lv.${m.level}</small></span>
+          <span class="tr-sp ${(m.sp || 0) > 0 ? 'has' : ''}">${m.sp || 0}</span>
+        </button>`).join('');
+
+      const branches = Object.entries(D.TRAINING).map(([key, t]) => {
+        const rank = mon.training[key] || 0;
+        const maxed = rank >= D.TRAIN_MAX;
+        const pips = Array.from({ length: D.TRAIN_MAX }, (_, i) => `<i class="${i < rank ? 'on' : ''}"></i>`).join('');
+        return `<div class="train-branch" style="--branch:${t.color}">
+          <div class="tb-head"><b>${t.name}</b><span class="tb-tag">${t.tag}</span><span class="tb-lv">${rank}/${D.TRAIN_MAX}</span></div>
+          <div class="tb-desc">${t.desc}</div>
+          <div class="pips">${pips}</div>
+          <button class="pixel-btn small" data-train-branch="${key}" ${(!spNow || maxed) ? 'disabled' : ''}>${maxed ? '已满级' : '强化 · 1 SP'}</button>
+        </div>`;
+      }).join('');
+
+      const moveRows = mon.moves.map((mv, i) => {
+        const base = D.MOVES[mv.id];
+        const eff = G.effMove(mon, mv);
+        const rank = eff.rank;
+        const maxed = rank >= D.MOVE_RANK_MAX;
+        const pips = Array.from({ length: D.MOVE_RANK_MAX }, (_, k) => `<i class="${k < rank ? 'on' : ''}"></i>`).join('');
+        const meta = base.cat === 'status'
+          ? `变化招式 · PP ${mv.pp}/${mv.maxPp}`
+          : `威力 ${eff.power}${eff.power !== base.power ? ` <em>(基础 ${base.power})</em>` : ''} · 命中 ${eff.acc === 0 ? '必中' : eff.acc} · PP ${mv.pp}/${mv.maxPp}`;
+        return `<div class="move-train-row">
+          <span class="mt-type" style="background:${D.TYPES[base.type].color}">${D.TYPES[base.type].name}</span>
+          <div class="mt-main">
+            <div class="mt-title"><b>${base.name}</b><span class="mt-rank">Lv.${rank}</span></div>
+            <div class="mt-meta">${meta}</div>
+            <div class="pips">${pips}</div>
+          </div>
+          <button class="pixel-btn small gold" data-train-move="${i}" ${(!spNow || maxed) ? 'disabled' : ''}>${maxed ? '已精通' : '升级'}</button>
+        </div>`;
+      }).join('');
+
+      const tms = Object.keys(s.bag).filter(id => D.ITEMS[id] && D.ITEMS[id].cat === 'tm' && s.bag[id] > 0);
+      const tmRows = tms.length ? tms.map(id => {
+        const it = D.ITEMS[id];
+        const mv = D.MOVES[it.teach];
+        return `<button class="tm-row" data-teach="${id}">
+          <canvas width="26" height="26" data-tm-icon="${id}"></canvas>
+          <span class="tm-main"><b>${it.name.replace('学习机·', '')}</b><small>${D.TYPES[mv.type].name} · ${mv.cat === 'status' ? '变化' : '威力 ' + mv.power}</small></span>
+          <span class="tm-qty">×${s.bag[id]}</span>
+        </button>`;
+      }).join('') : '<div class="side-empty">还没有学习机。溪桥补给站可以买到各种学习机。</div>';
+
+      this.el.menuBody.innerHTML = `
+        <div class="train-layout">
+          <div class="train-roster">
+            <div class="train-roster-head"><span>伙伴</span><span>技能点</span></div>
+            <div class="train-roster-list">${roster}</div>
+            <div class="train-tip">每升 1 级获得 2 点技能点，进化额外获得 3 点。技能点只会在伙伴之间分配，用错了可以继续升级补回来。</div>
+          </div>
+          <div class="train-main">
+            <div class="train-hero">
+              <div class="train-hero-sprite"><canvas width="72" height="72" data-train-hero></canvas></div>
+              <div class="train-hero-info">
+                <div class="train-hero-name"><h3>${G.nameOf(mon)}</h3><span>Lv.${mon.level}</span></div>
+                <div class="type-row">${sp.types.map(t => `<span class="type-badge" style="background:${D.TYPES[t].color}">${D.TYPES[t].name}</span>`).join('')}</div>
+                <div class="train-sp-row">
+                  <span class="sp-badge">${spNow}</span>
+                  <span class="sp-label">未分配技能点</span>
+                  <button class="pixel-btn small" data-train-auto ${spNow > 0 ? '' : 'disabled'}>自动分配</button>
+                  <button class="pixel-btn small" data-train-detail>详细资料</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="train-section"><h4>特训</h4><small>每级消耗 1 点技能点，永久提升基础能力</small></div>
+            <div class="train-branches">${branches}</div>
+
+            <div class="train-section"><h4>招式强化</h4><small>提升威力 / 命中 / PP，5 级时额外要害 +1</small></div>
+            <div class="move-train-list">${moveRows}</div>
+
+            <div class="train-section"><h4>学习机</h4><small>消耗学习机，教伙伴一个新招式</small></div>
+            <div class="tm-list">${tmRows}</div>
+          </div>
+        </div>`;
+
+      const body = this.el.menuBody;
+      body.querySelectorAll('canvas[data-train-sprite]').forEach(c => {
+        PKM.ART.drawMonsterCanvas(c, s.party[+c.dataset.trainSprite].species, 0, false);
+      });
+      const hero = body.querySelector('canvas[data-train-hero]');
+      if (hero) PKM.ART.drawMonsterCanvas(hero, mon.species, 0, false);
+      body.querySelectorAll('canvas[data-tm-icon]').forEach(c => {
+        PKM.ART.drawItemIcon(c, c.dataset.tmIcon);
+      });
+      body.querySelectorAll('[data-train-mon]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.trainIndex = +btn.dataset.trainMon;
+          PKM.AUDIO.sfx('move');
+          this.renderTrainTab();
+        });
+      });
+      body.querySelectorAll('[data-train-branch]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const res = G.upgradeTraining(mon, btn.dataset.trainBranch);
+          PKM.AUDIO.sfx(res.ok ? 'sparkle' : 'cancel');
+          this.toast(res.msg, null, res.ok ? 'g' : '');
+          if (res.ok) this.renderMenu();
+        });
+      });
+      body.querySelectorAll('[data-train-move]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const res = G.upgradeMove(mon, +btn.dataset.trainMove);
+          PKM.AUDIO.sfx(res.ok ? 'sparkle' : 'cancel');
+          this.toast(res.msg, null, res.ok ? 'g' : '');
+          if (res.ok) this.renderMenu();
+        });
+      });
+      const auto = body.querySelector('[data-train-auto]');
+      if (auto) auto.addEventListener('click', () => {
+        const res = G.autoTrain(mon, 99);
+        PKM.AUDIO.sfx(res.ok ? 'sparkle' : 'cancel');
+        this.toast(res.msg, null, res.ok ? 'g' : '');
+        if (res.ok) this.renderMenu();
+      });
+      const detail = body.querySelector('[data-train-detail]');
+      if (detail) detail.addEventListener('click', () => this.showMonDetail(index));
+      body.querySelectorAll('[data-teach]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          PKM.AUDIO.sfx('select');
+          this.openTeach(index, btn.dataset.teach);
+        });
+      });
+    },
+
+    openTeach(index, itemId) {
+      const s = G.state;
+      const mon = s.party[index];
+      const item = D.ITEMS[itemId];
+      if (!mon || !item || !item.teach) return;
+      const moveId = item.teach;
+      const mv = D.MOVES[moveId];
+      if (mon.moves.some(m => m.id === moveId)) {
+        this.toast(`${G.nameOf(mon)}已经学会了${mv.name}。`, null, '');
+        return;
+      }
+      const slots = mon.moves.map((m, i) => `<button class="teach-slot" data-teach-slot="${i}">
+          <b>${D.MOVES[m.id].name}</b><small>替换这一招</small>
+        </button>`).join('') + (mon.moves.length < 4
+          ? `<button class="teach-slot empty" data-teach-slot="-1"><b>空招式格</b><small>直接学会</small></button>` : '');
+      this.openModal(`
+        <div class="modal-head">
+          <div class="modal-sprite"><canvas width="96" height="96" id="teach-icon"></canvas></div>
+          <div style="flex:1">
+            <h2>${item.name}</h2>
+            <div class="modal-sub">教给 ${G.nameOf(mon)} · ${D.TYPES[mv.type].name} · ${mv.cat === 'status' ? '变化招式' : '威力 ' + mv.power}</div>
+            <div class="type-row" style="margin-top:6px">${D.SPECIES[mon.species].types.map(t => `<span class="type-badge" style="background:${D.TYPES[t].color}">${D.TYPES[t].name}</span>`).join('')}</div>
+          </div>
+        </div>
+        <div class="modal-text">${item.desc}</div>
+        <div class="modal-sub" style="margin-top:10px">要替换掉哪一个招式？</div>
+        <div class="teach-grid">${slots}</div>
+        <div class="modal-actions"><button class="pixel-btn" data-modal-close>再想想</button></div>`);
+      PKM.ART.drawItemIcon(document.getElementById('teach-icon'), itemId);
+      this.el.modalWindow.querySelectorAll('[data-teach-slot]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const res = G.teachMove(mon, moveId, +btn.dataset.teachSlot);
+          if (!res.ok) { PKM.AUDIO.sfx('cancel'); this.toast(res.msg, null, ''); return; }
+          G.removeItem(itemId, 1);
+          PKM.AUDIO.sfx('level');
+          this.closeModal();
+          this.toast(res.msg, null, 'g');
+          this.renderMenu();
+        });
       });
     },
 
@@ -1538,6 +1785,7 @@ window.PKM = window.PKM || {};
               <div class="detail-actions">
                 ${usable ? `<button class="pixel-btn gold" id="bag-use">使用</button>` : ''}
                 ${item.cat === 'ball' ? '<span class="modal-sub">在战斗中使用</span>' : ''}
+                ${item.cat === 'tm' ? `<button class="pixel-btn gold" id="bag-tm">去特训教学</button>` : ''}
                 ${item.cat === 'treasure' && item.sell ? `<button class="pixel-btn" id="bag-sell">出售 ₽ ${item.sell}</button>` : ''}
               </div>` : '<div class="bag-empty">选择一件物品。</div>'}
           </div>
@@ -1554,6 +1802,12 @@ window.PKM = window.PKM || {};
       });
       const use = document.getElementById('bag-use');
       if (use) use.addEventListener('click', () => this.openBagTarget(this.bagSel));
+      const tmBtn = document.getElementById('bag-tm');
+      if (tmBtn) tmBtn.addEventListener('click', () => {
+        this.menuTab = 'train';
+        PKM.AUDIO.sfx('select');
+        this.renderMenu();
+      });
       const sell = document.getElementById('bag-sell');
       if (sell) sell.addEventListener('click', () => {
         const it = D.ITEMS[this.bagSel];
@@ -1739,9 +1993,11 @@ window.PKM = window.PKM || {};
           <div class="quest-reward">${q.desc}</div>
         </div>`;
       }).join('');
-      this.el.menuBody.innerHTML = `<div class="quest-list">${cards}
-        <div style="font-size:10px;color:#7d6b50;line-height:1.8;">追踪任务后，世界中的黄色虚线和顶部罗盘会指向下一个目标。按 M 可以随时打开旅途地图。</div>
-      </div>`;
+      const achCount = G.achievementCount();
+      this.el.menuBody.innerHTML = `
+        <div class="quest-list">${cards}
+          <div style="font-size:10px;color:#7d6b50;line-height:1.8;">追踪任务后，世界中的黄色虚线和顶部罗盘会指向下一个目标。按 M 可以随时打开旅途地图。成就进度在「成就」页查看（${achCount}/${D.ACHIEVEMENTS.length}）。</div>
+        </div>`;
       this.el.menuBody.querySelectorAll('[data-track]').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.dataset.track;
@@ -1756,6 +2012,43 @@ window.PKM = window.PKM || {};
           this.toast(`正在追踪：${D.QUESTS[id].title}`, 'quest', 'quest');
         });
       });
+    },
+
+    renderAchievementsTab() {
+      const s = G.state;
+      const got = G.achievementCount();
+      const total = D.ACHIEVEMENTS.length;
+      const pct = Math.round(got / total * 100);
+      const cards = D.ACHIEVEMENTS.map(a => {
+        const done = !!(s.achievements && s.achievements[a.id]);
+        return `<div class="ach-card ${done ? 'got' : ''}">
+          <span class="ach-mark">${done ? '✦' : '·'}</span>
+          <div class="ach-body">
+            <b>${a.name}</b>
+            <small>${a.desc}</small>
+            <em>${done ? '已达成 · ' + this.rewardText(a) : '奖励：' + this.rewardText(a)}</em>
+          </div>
+        </div>`;
+      }).join('');
+      this.el.menuBody.innerHTML = `
+        <div class="ach-top">
+          <div class="ach-top-main">
+            <h3>森林成就</h3>
+            <div class="ach-sub">已达成 ${got} / ${total} · 达成时自动发放奖励</div>
+          </div>
+          <div class="ach-bar"><i style="width:${pct}%"></i></div>
+          <div class="ach-pct">${pct}%</div>
+        </div>
+        <div class="ach-grid">${cards}</div>
+        <div class="dex-note">捕获、进化、钓鱼、战胜训练家、把招式练到 5 级、攒钱与走路都会推进成就。灰色卡片就是下一步可以尝试的目标。</div>`;
+    },
+
+    rewardText(a) {
+      const r = (a && a.reward) || {};
+      const parts = [];
+      if (r.money) parts.push('₽ ' + r.money);
+      if (r.item && D.ITEMS[r.item]) parts.push(`${D.ITEMS[r.item].name} ×${r.qty || 1}`);
+      return parts.join(' · ') || '一段回忆';
     },
 
     renderSaveTab() {
@@ -1775,6 +2068,8 @@ window.PKM = window.PKM || {};
               <div class="save-stat"><span>图鉴记录</span><b>${Object.keys(s.dexCaught).length} / ${D.DEX_ORDER.length}</b></div>
               <div class="save-stat"><span>行走步数</span><b>${s.steps}</b></div>
               <div class="save-stat"><span>当前伙伴</span><b>${s.party.length} / 6</b></div>
+              <div class="save-stat"><span>成就</span><b>${G.achievementCount()} / ${D.ACHIEVEMENTS.length}</b></div>
+              <div class="save-stat"><span>战胜训练家</span><b>${s.trainerWins || 0} 位</b></div>
             </div>
             <div class="modal-sub">徽章</div>
             <div class="badge-row">${badges}<span style="font-size:10px;color:#79684c;margin-left:6px">${s.badges.length ? '森语徽章' : '还没有徽章'}</span></div>
@@ -1967,6 +2262,7 @@ window.PKM = window.PKM || {};
           this.dialog({ speaker: '水面', lines: ['浮标晃了一下，又安静了。', '今天鱼群似乎很谨慎。'] });
           return;
         }
+        if (G.state) G.state.flags.fished = true;
         this.screenFlash();
         this.battleStarting = true;
         setTimeout(() => {
@@ -2120,7 +2416,7 @@ window.PKM = window.PKM || {};
       if (this.menuOpen) {
         if (key === 'cancel' || key === 'menu') this.closeMenu();
         else if (key === 'left' || key === 'right') {
-          const order = ['party', 'bag', 'dex', 'quests', 'save', 'settings'];
+          const order = ['party', 'train', 'bag', 'dex', 'quests', 'ach', 'save', 'settings'];
           let i = order.indexOf(this.menuTab);
           i = (i + (key === 'right' ? 1 : -1) + order.length) % order.length;
           this.menuTab = order[i];

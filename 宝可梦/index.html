@@ -64,21 +64,6 @@
       <div class="scanlines"></div>
       <div class="screen-glare"></div>
 
-      <!-- 触摸控制 -->
-      <div id="touch-controls" class="touch-controls hidden">
-        <div class="dpad">
-          <button class="dpad-btn up" data-dir="up" aria-label="上">▲</button>
-          <button class="dpad-btn left" data-dir="left" aria-label="左">◀</button>
-          <button class="dpad-btn center" aria-hidden="true"></button>
-          <button class="dpad-btn right" data-dir="right" aria-label="右">▶</button>
-          <button class="dpad-btn down" data-dir="down" aria-label="下">▼</button>
-        </div>
-        <div class="touch-buttons">
-          <button class="round-btn" data-touch="b" aria-label="菜单">B</button>
-          <button class="round-btn a" data-touch="a" aria-label="互动">A</button>
-        </div>
-      </div>
-
       <!-- 地图名横幅 -->
       <div id="map-banner" class="map-banner">
         <div class="map-banner-line"></div>
@@ -255,7 +240,7 @@
         </div>
         <div class="title-meta">
           <span id="title-save-info">还没有旅程记录</span>
-          <span>v1.0.0</span>
+          <span>v1.1.0</span>
         </div>
         <div class="title-fireflies" aria-hidden="true"></div>
       </div>
@@ -320,7 +305,36 @@
 
     </div>
 
-    <!-- 横屏提示（位于缩放舞台之外） -->
+    <!-- 触摸控制（位于缩放舞台之外，按键永远保持适合手指的尺寸） -->
+    <div id="touch-controls" class="touch-controls hidden">
+      <div class="dpad">
+        <button class="dpad-btn up" data-dir="up" aria-label="上">▲</button>
+        <button class="dpad-btn left" data-dir="left" aria-label="左">◀</button>
+        <button class="dpad-btn center" aria-label="方向摇杆"></button>
+        <button class="dpad-btn right" data-dir="right" aria-label="右">▶</button>
+        <button class="dpad-btn down" data-dir="down" aria-label="下">▼</button>
+      </div>
+      <div class="touch-buttons">
+        <button class="round-btn" data-touch="b" aria-label="菜单">B</button>
+        <button class="round-btn a" data-touch="a" aria-label="互动">A</button>
+      </div>
+    </div>
+
+    <!-- 竖屏辅助条（位于缩放舞台之外） -->
+    <div id="mobile-bar" class="mobile-bar">
+      <div class="mb-row">
+        <button id="mb-fullscreen">⛶ 全屏横屏</button>
+        <button id="mb-map">旅途地图</button>
+        <span class="mb-tip">竖屏也能玩 · 横过来视野更宽</span>
+      </div>
+      <div class="mb-quest" id="mb-quest">
+        <span class="mbq-mark">◆</span>
+        <div class="mbq-body"><b id="mbq-title">当前目标</b><span id="mbq-hint">离开青苔镇，沿着微风小径向北走。</span></div>
+      </div>
+      <div class="mb-hint">左下摇杆移动 · A 交谈 / 确认 · B 打开旅人手记</div>
+    </div>
+
+    <!-- 横屏提示（保留占位，不再遮挡游戏） -->
     <div id="rotate-hint" class="rotate-hint">
       <div class="rotate-icon">▭</div>
       <div>请把设备横过来</div>

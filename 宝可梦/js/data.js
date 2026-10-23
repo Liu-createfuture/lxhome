@@ -413,7 +413,16 @@ window.PKM = window.PKM || {};
     pearl:      { name: '溪珍珠', price: 0, sell: 500, cat: 'treasure', icon: 'pearl', desc: '圆润的溪珍珠。可以卖个好价钱。' },
     rod:        { name: '旧钓竿', price: 0, sell: 0, cat: 'key', icon: 'rod', desc: '面向水面按 Z，就能钓起水中的宝可梦。' },
     dex:        { name: '森林图鉴', price: 0, sell: 0, cat: 'key', icon: 'dex', desc: '苔爷爷送的图鉴，会自动记录遇见与捕获的宝可梦。' },
-    badge:      { name: '森语徽章', price: 0, sell: 0, cat: 'key', icon: 'badge', desc: '溪桥道馆的证明。萤火森林的守卫会认可它。' }
+    badge:      { name: '森语徽章', price: 0, sell: 0, cat: 'key', icon: 'badge', desc: '溪桥道馆的证明。萤火森林的守卫会认可它。' },
+
+    /* 学习机：在「特训」页教伙伴新招式 */
+    tm_quick:      { name: '学习机·电光一闪', price: 900, sell: 450, cat: 'tm', teach: 'quickattack', icon: 'tm', desc: '教伙伴「电光一闪」：一般属性，必定先制。适合速度慢的伙伴抢先手。' },
+    tm_swift:      { name: '学习机·高速星星', price: 1100, sell: 550, cat: 'tm', teach: 'swift', icon: 'tm', desc: '教伙伴「高速星星」：一般属性特殊攻击，必定命中，不会被闪避。' },
+    tm_bite:       { name: '学习机·咬住', price: 1400, sell: 700, cat: 'tm', teach: 'bite', icon: 'tm', desc: '教伙伴「咬住」：恶属性，有机会让对手畏缩、失去一次行动。' },
+    tm_waterpulse: { name: '学习机·水之波动', price: 1500, sell: 750, cat: 'tm', teach: 'waterpulse', icon: 'tm', desc: '教伙伴「水之波动」：水属性特殊攻击，有机会让对手混乱。' },
+    tm_thunderwave:{ name: '学习机·电磁波', price: 1600, sell: 800, cat: 'tm', teach: 'thunderwave', icon: 'tm', desc: '教伙伴「电磁波」：让对手麻痹，速度减半，还可能无法行动。' },
+    tm_synthesis:  { name: '学习机·光合作用', price: 1800, sell: 900, cat: 'tm', teach: 'synthesis', icon: 'tm', desc: '教伙伴「光合作用」：回复最大体力的一半，长战斗里非常可靠。' },
+    tm_shadowball: { name: '学习机·暗影球', price: 2400, sell: 1200, cat: 'tm', teach: 'shadowball', icon: 'tm', desc: '教伙伴「暗影球」：幽灵属性强力特殊攻击，可能降低对手特防。' }
   };
 
   /* ---------- 快速移动点 ---------- */
@@ -429,10 +438,29 @@ window.PKM = window.PKM || {};
 
   /* ---------- 商店 ---------- */
   PKM.SHOPS = {
-    town: { name: '青苔杂货铺', stock: ['pokeball', 'potion', 'antidote', 'berry'] },
-    brook: { name: '溪桥补给站', stock: ['pokeball', 'greatball', 'superpotion', 'antidote', 'revive', 'berry', 'lureberry'] },
-    brook_late: { name: '溪桥补给站', stock: ['greatball', 'ultraball', 'superpotion', 'hyperpotion', 'antidote', 'revive', 'berry', 'lureberry'] }
+    town: { name: '青苔杂货铺', stock: ['pokeball', 'potion', 'antidote', 'berry', 'tm_quick'] },
+    brook: { name: '溪桥补给站', stock: ['pokeball', 'greatball', 'superpotion', 'antidote', 'revive', 'berry', 'lureberry', 'tm_quick', 'tm_swift'] },
+    brook_late: { name: '溪桥补给站', stock: ['greatball', 'ultraball', 'superpotion', 'hyperpotion', 'antidote', 'revive', 'berry', 'lureberry', 'tm_swift', 'tm_bite', 'tm_waterpulse', 'tm_thunderwave', 'tm_synthesis', 'tm_shadowball'] }
   };
+
+  /* ---------- 特训 / 技能强化 ---------- */
+  /* 每升 1 级获得 2 点技能点，进化额外 3 点。技能点可以投入三条特训线，
+     也可以用来强化具体招式的等级（威力 / 命中 / PP / 要害）。 */
+  PKM.SP_PER_LEVEL = 2;
+  PKM.SP_EVOLVE = 3;
+  PKM.TRAIN_MAX = 5;
+  PKM.MOVE_RANK_MAX = 5;
+
+  PKM.TRAINING = {
+    power: { name: '力量特训', short: '力量', color: '#c96651', desc: '攻击与特攻各 +5%（每级）', tag: '攻势' },
+    guard: { name: '坚韧特训', short: '坚韧', color: '#5c9fd6', desc: '体力 +6%，防御与特防各 +4%（每级）', tag: '守势' },
+    swift: { name: '迅捷特训', short: '迅捷', color: '#e8c34a', desc: '速度 +5%，要害率 +2%（每级）', tag: '身法' }
+  };
+
+  /* 招式等级带来的收益：威力倍率 / 命中加成 / PP 加成 / 要害等级 */
+  PKM.MOVE_RANK_POWER = [1, 1.1, 1.2, 1.3, 1.4];
+  PKM.MOVE_RANK_ACC = [0, 0, 4, 4, 8, 12];
+  PKM.MOVE_RANK_PP = [0, 0, 2, 4, 6, 8];
 
   /* ---------- 地图工具 ---------- */
   function makeMap(def) {
@@ -1051,6 +1079,32 @@ window.PKM = window.PKM || {};
     mist_bell: { title: '山顶的松风铃', type: 'side', desc: '雾松山道的画家在找一枚被风吹走的旧铜铃。' }
   };
 
+  /* ---------- 成就 ---------- */
+  /* 达成后会自动弹提示、发放奖励，记录在旅人手记的「任务」页。 */
+  const roster = (S) => [...(S.party || []), ...(S.pc || [])];
+  const trainerWins = (S) => Object.values(PKM.TRAINERS).filter(t => t.flag && S.flags && S.flags[t.flag]).length;
+  const flag = (S, k) => !!(S && S.flags && S.flags[k]);
+  const totalTrainRanks = (m) => m.training ? Object.values(m.training).reduce((a, b) => a + b, 0) : 0;
+  const maxMoveRank = (m) => m.moveRanks ? Math.max(1, ...Object.values(m.moveRanks)) : 1;
+
+  PKM.ACHIEVEMENTS = [
+    { id: 'first_catch', name: '第一次握手', desc: '捕获第一只宝可梦。', icon: 'ball', reward: { money: 300 }, cond: S => (S.catches || 0) >= 1 },
+    { id: 'catch8', name: '森林名录', desc: '捕获 8 种不同的宝可梦。', icon: 'ball', reward: { money: 600, item: 'greatball', qty: 3 }, cond: S => Object.keys(S.dexCaught || {}).length >= 8 },
+    { id: 'catch20', name: '博物学者', desc: '捕获 20 种不同的宝可梦。', icon: 'dex', reward: { money: 1500, item: 'ultraball', qty: 3 }, cond: S => Object.keys(S.dexCaught || {}).length >= 20 },
+    { id: 'dex_all', name: '森之图鉴', desc: '把图鉴里所有的宝可梦都记录下来。', icon: 'dex', reward: { money: 6000, item: 'ultraball', qty: 10 }, cond: S => Object.keys(S.dexCaught || {}).length >= Object.keys(PKM.SPECIES).length },
+    { id: 'evolved', name: '蜕变', desc: '亲眼见证一次进化。', icon: 'rune', reward: { money: 500 }, cond: S => flag(S, 'evolved') },
+    { id: 'angler', name: '水边的耐心', desc: '从水里钓起一只宝可梦。', icon: 'rod', reward: { money: 400, item: 'lureberry', qty: 2 }, cond: S => flag(S, 'fished') },
+    { id: 'badge', name: '森语徽章', desc: '获得溪桥道馆的徽章。', icon: 'badge', reward: { money: 800, item: 'superpotion', qty: 2 }, cond: S => flag(S, 'badge') },
+    { id: 'trainers5', name: '路上的对手', desc: '战胜 5 位训练家。', icon: 'quest', reward: { money: 900 }, cond: S => trainerWins(S) >= 5 },
+    { id: 'trainers_all', name: '无人可挡', desc: '战胜旅途中遇到的每一位训练家。', icon: 'quest', reward: { money: 2500, item: 'revive', qty: 2 }, cond: S => trainerWins(S) >= Object.values(PKM.TRAINERS).filter(t => t.flag && !['boss', 'shadow'].includes(t.flag)).length },
+    { id: 'move_max', name: '千锤百炼', desc: '把任意一个招式练到 5 级。', icon: 'tm', reward: { money: 1200, item: 'hyperpotion', qty: 1 }, cond: S => roster(S).some(m => maxMoveRank(m) >= PKM.MOVE_RANK_MAX) },
+    { id: 'trainer_coach', name: '严厉的教练', desc: '让某只伙伴获得 10 级特训。', icon: 'tm', reward: { money: 1000, item: 'lureberry', qty: 3 }, cond: S => roster(S).some(m => totalTrainRanks(m) >= 10) },
+    { id: 'rich', name: '小有积蓄', desc: '身上带着 5000 金币。', icon: 'pearl', reward: { money: 1000 }, cond: S => (S.money || 0) >= 5000 },
+    { id: 'walker', name: '慢慢走的人', desc: '在森林里走过 2000 步。', icon: 'quest', reward: { money: 600, item: 'potion', qty: 3 }, cond: S => (S.steps || 0) >= 2000 },
+    { id: 'forest_light', name: '光，回来了', desc: '让萤火森林重新亮起来。', icon: 'badge', reward: { money: 3000, item: 'ultraball', qty: 5 }, cond: S => flag(S, 'forestCleared') },
+    { id: 'guardian', name: '温柔的选择', desc: '与祭坛深处沉睡的光相遇。', icon: 'rune', reward: { money: 5000, item: 'revive', qty: 3 }, cond: S => flag(S, 'legendaryCaught') }
+  ];
+
   /* ---------- 对话 ---------- */
   const B = (n) => `（背包里有 ${n} 个精灵球）`;
   PKM.DIALOGUES = {
@@ -1207,7 +1261,7 @@ window.PKM = window.PKM || {};
   /* ---------- 图鉴顺序 ---------- */
   PKM.DEX_ORDER = Object.keys(PKM.SPECIES);
   PKM.STARTERS = ['sproutle', 'emberfox', 'bubblotter'];
-  PKM.VERSION = '1.0.0';
+  PKM.VERSION = '1.1.0';
 
   PKM.DATA = {
     TYPES: PKM.TYPES,
@@ -1220,6 +1274,15 @@ window.PKM = window.PKM || {};
     TRAINERS: PKM.TRAINERS,
     NPCS: PKM.NPCS,
     QUESTS: PKM.QUESTS,
+    ACHIEVEMENTS: PKM.ACHIEVEMENTS,
+    TRAINING: PKM.TRAINING,
+    TRAIN_MAX: PKM.TRAIN_MAX,
+    MOVE_RANK_MAX: PKM.MOVE_RANK_MAX,
+    MOVE_RANK_POWER: PKM.MOVE_RANK_POWER,
+    MOVE_RANK_ACC: PKM.MOVE_RANK_ACC,
+    MOVE_RANK_PP: PKM.MOVE_RANK_PP,
+    SP_PER_LEVEL: PKM.SP_PER_LEVEL,
+    SP_EVOLVE: PKM.SP_EVOLVE,
     DIALOGUES: PKM.DIALOGUES,
     WAYPOINTS: PKM.WAYPOINTS,
     TILE_SOLID: PKM.TILE_SOLID,

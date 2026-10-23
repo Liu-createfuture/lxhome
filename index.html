@@ -1,60 +1,98 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>我的项目导航</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-    min-height: 100vh; background: #f5f6fa; color: #2c3e50; padding: 40px 20px;
-  }
-  .wrap { max-width: 1000px; margin: 0 auto; }
-  h1 { font-size: 28px; margin-bottom: 8px; }
-  .sub { color: #7f8c8d; margin-bottom: 32px; font-size: 14px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-  .card {
-    background: #fff; border-radius: 12px; padding: 24px; text-decoration: none;
-    color: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    transition: transform .15s, box-shadow .15s; display: block;
-    border-left: 4px solid #3498db;
-  }
-  .card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-  .card h2 { font-size: 18px; margin-bottom: 8px; }
-  .card p { font-size: 13px; color: #7f8c8d; line-height: 1.6; }
-  .tag {
-    display: inline-block; font-size: 11px; background: #ecf0f1; color: #2c3e50;
-    padding: 2px 8px; border-radius: 4px; margin-top: 12px;
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>我的项目导航</h1>
-  <p class="sub">共 4 个项目 · 自动扫描生成</p>
-  <div class="grid">
-    <a class="card" href="/_dist/">
-      <h2>🌐 _dist</h2>
-      <p>暂无描述，点击进入项目。</p>
-      <span class="tag">Three.js</span>
-    </a>
-    <a class="card" href="/医院导航/">
-      <h2>🌐 医院导航</h2>
-      <p>暂无描述，点击进入项目。</p>
-      <span class="tag">Three.js</span>
-    </a>
-    <a class="card" href="/宝可梦/">
-      <h2>🎮 宝可梦</h2>
-      <p>宝可梦：森之秘语</p>
-      <span class="tag">游戏</span>
-    </a>
-    <a class="card" href="/输入/">
-      <h2>⌨️ 输入</h2>
-      <p>暂无描述，点击进入项目。</p>
-      <span class="tag">软键盘</span>
-    </a>
-  </div>
-</div>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的项目导航</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+        min-height: 100vh;
+        background: #f5f6fa;
+        color: #2c3e50;
+        padding: 40px 20px;
+      }
+      .wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      .sub {
+        color: #7f8c8d;
+        margin-bottom: 32px;
+        font-size: 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s;
+        display: block;
+        border-left: 4px solid #3498db;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      }
+      .card h2 {
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+      .card p {
+        font-size: 13px;
+        color: #7f8c8d;
+        line-height: 1.6;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 11px;
+        background: #ecf0f1;
+        color: #2c3e50;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>我的项目导航</h1>
+      <p class="sub">共 4 个项目 · 自动扫描生成</p>
+      <div class="grid">
+        <a class="card" href="/医院导航/">
+          <h2>🌐 医院导航</h2>
+          <p>暂无描述，点击进入项目。</p>
+          <span class="tag">Three.js</span>
+        </a>
+        <a class="card" href="/宝可梦/">
+          <h2>🎮 宝可梦</h2>
+          <p>宝可梦：森之秘语</p>
+          <span class="tag">游戏</span>
+        </a>
+        <a class="card" href="/输入/">
+          <h2>⌨️ 输入</h2>
+          <p>暂无描述，点击进入项目。</p>
+          <span class="tag">软键盘</span>
+        </a>
+      </div>
+    </div>
+  </body>
 </html>

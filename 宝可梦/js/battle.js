@@ -311,16 +311,17 @@ window.PKM = window.PKM || {};
       const moves = this.playerMon.moves;
       this.el.submenu.innerHTML = `
         <div class="moves-panel">
-          <div class="battle-prompt">选择招式 <span class="hint">X 返回</span></div>
+          <div class="battle-prompt">选择招式 <span class="hint">X 返回 · 招式等级在特训页提升</span></div>
           <div class="move-grid" style="grid-template-columns:repeat(${Math.min(4, Math.max(1, moves.length))},1fr)">
             ${moves.map((mv, i) => {
               const m = D.MOVES[mv.id];
               const t = D.TYPES[m.type];
+              const eff = G.effMove(this.playerMon, mv);
               const pp = mv.pp <= 0;
               return `<button class="move-btn ${pp ? 'disabled' : ''}" data-bact="move" data-index="${i}" ${pp ? 'disabled' : ''} style="--type:${t.color};--type-dark:${t.dark}">
-                <span class="move-type">${t.name}</span>
+                <span class="move-type">${t.name}${eff.rank > 1 ? `<i class="move-rank">Lv.${eff.rank}</i>` : ''}</span>
                 <span class="move-name">${m.name}</span>
-                <span class="move-meta">${m.cat === 'status' ? '变化' : (m.power + ' 威力')} · PP ${mv.pp}/${mv.maxPp}</span>
+                <span class="move-meta">${m.cat === 'status' ? '变化' : (eff.power + ' 威力')} · PP ${mv.pp}/${mv.maxPp}</span>
               </button>`;
             }).join('')}
           </div>
@@ -548,6 +549,7 @@ window.PKM = window.PKM || {};
     async performMove(attacker, defender, mv, side) {
       const defenderSide = side === 'player' ? 'enemy' : 'player';
       const move = mv.struggle ? { name: '挣扎', type: 'normal', cat: 'physical', power: 40, acc: 100, recoil: .25 } : D.MOVES[mv.id];
+      const eff = mv.struggle ? null : G.effMove(attacker, mv);
       if (!mv.struggle) {
         if (mv.pp <= 0) {
           await this.msg(`${this.label(attacker, side)}没有可用的 PP 了！`, 600);
@@ -560,7 +562,8 @@ window.PKM = window.PKM || {};
       await this.msg(`${this.label(attacker, side)}使用了${move.name}！`, 520);
       this.attackAnim(side);
 
-      if (move.acc !== 0 && Math.random() * 100 >= move.acc) {
+      const acc = eff ? eff.acc : move.acc;
+      if (acc !== 0 && Math.random() * 100 >= acc) {
         PKM.AUDIO.sfx('weakhit');
         await this.msg('但是没有命中……', 600);
         return;
@@ -569,7 +572,7 @@ window.PKM = window.PKM || {};
         await this.useStatusMove(attacker, defender, move, side, defenderSide);
         return;
       }
-      await this.dealDamage(attacker, defender, move, side, defenderSide);
+      await this.dealDamage(attacker, defender, move, side, defenderSide, eff);
       if (defender.hp <= 0) return;
       await this.applyAfterEffects(attacker, defender, move, side, defenderSide);
     },
@@ -644,35 +647,38 @@ window.PKM = window.PKM || {};
       await this.msg(`${this.label(target, targetSide)}的${STAT_LABEL[stat.stat]}${stat.stages > 0 ? '提高了' : '降低了'}${Math.abs(stat.stages) > 1 ? '很多' : ''}！`, 680);
     },
 
-    async dealDamage(attacker, defender, move, side, defenderSide) {
+    async dealDamage(attacker, defender, move, side, defenderSide, eff) {
       const defenderTypes = D.SPECIES[defender.species].types;
-      const eff = G.effectiveness(move.type, defenderTypes);
-      if (eff === 0) {
+      const effMul = G.effectiveness(move.type, defenderTypes);
+      if (effMul === 0) {
         PKM.AUDIO.sfx('weakhit');
         await this.msg(`对${this.label(defender, defenderSide)}没有效果……`, 700);
         return;
       }
       const cat = move.cat;
+      const power = eff && eff.power ? eff.power : move.power;
       const atkStage = cat === 'physical' ? attacker.stages.atk : attacker.stages.spa;
       const defStage = cat === 'physical' ? defender.stages.def : defender.stages.spd;
       let atk = (cat === 'physical' ? attacker.stats.atk : attacker.stats.spa) * this.stageMul(atkStage);
       const def = Math.max(1, (cat === 'physical' ? defender.stats.def : defender.stats.spd) * this.stageMul(defStage));
       if (cat === 'physical' && attacker.status === 'burn') atk *= .5;
-      let base = Math.floor(((((2 * attacker.level / 5 + 2) * move.power * atk / def) / 50) + 2));
+      let base = Math.floor(((((2 * attacker.level / 5 + 2) * power * atk / def) / 50) + 2));
       const stab = D.SPECIES[attacker.species].types.includes(move.type) ? 1.5 : 1;
-      const critChance = 1 / 16 + (move.crit || 0) / 16;
+      const moveCrit = eff ? eff.crit : (move.crit || 0);
+      const swift = (attacker.training && attacker.training.swift) || 0;
+      const critChance = 1 / 16 + moveCrit / 16 + swift * .02;
       const crit = Math.random() < critChance;
       const rand = .85 + Math.random() * .15;
-      let dmg = Math.floor(base * stab * eff * (crit ? 1.5 : 1) * rand);
+      let dmg = Math.floor(base * stab * effMul * (crit ? 1.5 : 1) * rand);
       dmg = Math.max(1, dmg);
       defender.hp = Math.max(0, defender.hp - dmg);
       this.hitAnim(defenderSide, move.type);
       this.updateInfo();
-      PKM.AUDIO.sfx(eff > 1 ? 'superhit' : eff < 1 ? 'weakhit' : 'hit');
+      PKM.AUDIO.sfx(effMul > 1 ? 'superhit' : effMul < 1 ? 'weakhit' : 'hit');
       await this.delay(260);
       if (crit) await this.msg('击中了要害！', 500);
-      if (eff > 1) await this.msg('效果拔群！', 600);
-      else if (eff < 1) await this.msg('效果不太理想……', 550);
+      if (effMul > 1) await this.msg('效果拔群！', 600);
+      else if (effMul < 1) await this.msg('效果不太理想……', 550);
     },
 
     async applyAfterEffects(attacker, defender, move, side, defenderSide) {
@@ -799,6 +805,9 @@ window.PKM = window.PKM || {};
         this.updateInfo();
         await this.msg(`${G.nameOf(mon)}升到了 ${lv} 级！`, 750);
       }
+      if (res.sp > 0) {
+        await this.msg(`获得 ${res.sp} 点技能点，可以在旅人手记的「特训」页使用。`, 850);
+      }
       for (const mid of res.moves) {
         await this.msg(`${G.nameOf(mon)}学会了${D.MOVES[mid].name}！`, 750);
       }
@@ -853,6 +862,7 @@ window.PKM = window.PKM || {};
       this.hidePanels();
       const tr = this.trainer;
       G.state.flags[tr.flag] = true;
+      G.state.trainerWins = (G.state.trainerWins || 0) + 1;
       if (tr.reward) G.state.money += tr.reward;
       PKM.AUDIO.sfx('victory');
       await this.msg(`战胜了${tr.klass} ${tr.name}！`, 850);

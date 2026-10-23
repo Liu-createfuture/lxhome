@@ -33,6 +33,9 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 button, input { font-family: inherit; }
 button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -65,12 +68,13 @@ body::after {
   perspective: 1200px;
 }
 #stage {
-  position: relative;
+  position: absolute; left: 0; top: 0;
   width: 960px; height: 600px;
   flex: none;
   overflow: hidden;
   background: #0c1c16;
-  transform-origin: center center;
+  transform-origin: 0 0;
+  will-change: transform;
   box-shadow:
     0 0 0 4px #1b2d24,
     0 0 0 7px #405a48,
@@ -958,6 +962,7 @@ body::after {
 .move-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
 .move-btn {
   position: relative; min-height: 100px; text-align: left;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
   padding: 10px 10px 8px;
   background: var(--type); color: #fff9e9;
   border: 2px solid #17271d; border-bottom-width: 4px;
@@ -977,7 +982,7 @@ body::after {
 }
 .move-btn:hover, .move-btn.focused { filter: brightness(1.12); transform: translateY(-2px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.4), 0 0 0 2px #f0ce7b; }
 .move-btn:disabled { filter: grayscale(.8); opacity: .5; }
-.move-type { display: inline-block; padding: 1px 5px; font-size: 8px; background: rgba(0,0,0,.25); margin-bottom: 5px; }
+.move-type { display: inline-block; padding: 2px 6px; font-size: 9px; background: rgba(0,0,0,.3); margin-bottom: 5px; }
 .move-name { display: block; font-size: 15px; font-weight: 700; letter-spacing: 1px; }
 .move-meta { display: block; margin-top: 5px; font: 700 8px/1 "Consolas", monospace; opacity: .78; }
 .back-btn {
@@ -1342,60 +1347,268 @@ body::after {
 }
 @keyframes healPulse { 50% { transform: scale(1.12); filter: brightness(1.35); } }
 
+/* ---------- 特训 ---------- */
+.train-layout { display: grid; grid-template-columns: 194px 1fr; gap: 12px; align-items: start; }
+.train-roster { background: #e6d3ae; border: 2px solid #b29a6b; padding: 8px; }
+.train-roster-head { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: 1px; color: #82704f; padding: 0 4px 6px; }
+.train-roster-list { display: flex; flex-direction: column; gap: 4px; max-height: 296px; overflow-y: auto; }
+.train-roster-row {
+  display: flex; align-items: center; gap: 6px; padding: 4px 5px;
+  background: rgba(255,255,255,.28); border: 1px solid #c3ad81; text-align: left;
+}
+.train-roster-row:hover { background: #f6e8c6; }
+.train-roster-row.sel { background: #f8efd8; border-color: #a8792c; box-shadow: 0 0 0 1px #e4bc65; }
+.train-roster-row canvas { width: 34px; height: 34px; image-rendering: pixelated; flex: none; }
+.train-roster-row .tr-name { flex: 1; min-width: 0; font-size: 11px; font-weight: 700; }
+.train-roster-row .tr-name small { display: block; font: 700 8px "Consolas", monospace; color: #8a7757; }
+.train-roster-row .tr-sp { font: 700 10px/1 "Consolas", monospace; color: #9a8763; padding: 3px 5px; background: rgba(90,70,40,.12); }
+.train-roster-row .tr-sp.has { color: #fdf3d6; background: #b98535; }
+.train-tip { margin-top: 8px; font-size: 9px; line-height: 1.7; color: #7d6b50; }
+.train-main { min-width: 0; }
+.train-hero { display: flex; gap: 10px; align-items: center; padding: 8px 10px; background: #ead9b4; border: 2px solid #b29a6b; }
+.train-hero-sprite { width: 68px; height: 68px; flex: none; background: rgba(86,111,67,.12); border: 1px solid rgba(90,70,40,.18); }
+.train-hero-sprite canvas { width: 100%; height: 100%; image-rendering: pixelated; }
+.train-hero-info { flex: 1; min-width: 0; }
+.train-hero-name { display: flex; align-items: baseline; gap: 8px; }
+.train-hero-name h3 { margin: 0; font-size: 18px; letter-spacing: 1px; }
+.train-hero-name span { font: 700 10px "Consolas", monospace; color: #6b5a3d; }
+.train-sp-row { display: flex; align-items: center; gap: 7px; margin-top: 6px; flex-wrap: wrap; }
+.sp-badge {
+  min-width: 26px; height: 22px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #b98535; color: #fff6dc; font: 700 12px/1 "Consolas", monospace;
+  border: 2px solid #614516;
+}
+.sp-label { font-size: 10px; color: #6d5c41; }
+.train-section { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 12px 0 6px; }
+.train-section h4 { margin: 0; font-size: 14px; letter-spacing: 2px; color: #3a4e38; }
+.train-section small { font-size: 9px; color: #8a7757; }
+.train-branches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.train-branch { padding: 8px 9px; background: #ead9b4; border: 2px solid #b29a6b; border-left: 4px solid var(--branch); }
+.tb-head { display: flex; align-items: center; gap: 5px; }
+.tb-head b { flex: 1; font-size: 12px; }
+.tb-tag { font-size: 8px; color: #f4ead2; background: var(--branch); padding: 1px 4px; }
+.tb-lv { font: 700 9px "Consolas", monospace; color: #7a684c; }
+.tb-desc { margin-top: 3px; font-size: 9px; line-height: 1.5; color: #6d5c41; min-height: 26px; }
+.pips { display: flex; gap: 3px; margin: 5px 0 6px; }
+.pips i { flex: 1; height: 5px; background: #cbb68c; border: 1px solid #a89167; }
+.pips i.on { background: var(--branch, #6d9160); border-color: rgba(0,0,0,.25); }
+.train-branch .pixel-btn { width: 100%; }
+.move-train-list { display: flex; flex-direction: column; gap: 6px; }
+.move-train-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #ead9b4; border: 2px solid #b29a6b; }
+.mt-type { width: 30px; padding: 2px 0; text-align: center; font-size: 10px; color: #fff7e6; text-shadow: 0 1px 0 rgba(0,0,0,.4); flex: none; }
+.mt-main { flex: 1; min-width: 0; }
+.mt-title { display: flex; align-items: baseline; gap: 6px; }
+.mt-title b { font-size: 13px; }
+.mt-rank { font: 700 9px "Consolas", monospace; color: #8a5b32; }
+.mt-meta { font-size: 9px; color: #6d5c41; margin-top: 2px; }
+.mt-meta em { font-style: normal; color: #8a7757; }
+.move-train-row .pips { margin: 4px 0 0; max-width: 160px; }
+.tm-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tm-row { display: flex; align-items: center; gap: 7px; padding: 5px 8px; background: #ead9b4; border: 2px solid #b29a6b; text-align: left; }
+.tm-row:hover { background: #f6e8c6; border-color: #8e7446; }
+.tm-row canvas { width: 24px; height: 24px; image-rendering: pixelated; flex: none; }
+.tm-main { flex: 1; min-width: 0; }
+.tm-main b { display: block; font-size: 11px; }
+.tm-main small { font-size: 9px; color: #7a684c; }
+.tm-qty { font: 700 10px "Consolas", monospace; color: #5f513d; }
+.teach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; }
+.teach-slot { padding: 7px 9px; background: #e5d2ac; border: 2px solid #b29a6b; text-align: left; }
+.teach-slot:hover { background: #f6e8c6; border-color: #8e7446; }
+.teach-slot b { display: block; font-size: 12px; }
+.teach-slot small { font-size: 9px; color: #7a684c; }
+.teach-slot.empty { border-style: dashed; }
+.card-tags { display: flex; gap: 5px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+.card-sp { font: 700 8px/1 "Consolas", monospace; color: #fff6dc; background: #b98535; padding: 3px 4px; }
+.move-pill-rank { font: 700 8px/1 "Consolas", monospace; color: #8a5b32; font-style: normal; }
+.move-rank { margin-left: 4px; padding: 0 3px; background: rgba(255,255,255,.22); font-style: normal; font-size: 7px; }
+
+/* ---------- 成就 ---------- */
+.ach-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 16px 0 8px; padding-top: 12px; border-top: 2px dashed #cbb68c;
+}
+.ach-head h3 { margin: 0; font-size: 16px; letter-spacing: 2px; }
+.ach-count { font: 700 10px "Consolas", monospace; color: #7a684c; }
+.ach-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+.ach-card { display: flex; gap: 7px; padding: 7px 8px; background: #e8ddc2; border: 2px solid #c3ad81; opacity: .74; }
+.ach-card.got { background: #e7e5c2; border-color: #86a26f; opacity: 1; }
+.ach-mark { width: 18px; height: 18px; flex: none; display: grid; place-items: center; font-size: 11px; color: #8a7757; background: rgba(90,70,40,.12); }
+.ach-card.got .ach-mark { color: #fdf3d6; background: #b98535; }
+.ach-body { min-width: 0; }
+.ach-body b { display: block; font-size: 11px; }
+.ach-body small { display: block; font-size: 9px; line-height: 1.5; color: #6d5c41; }
+.ach-body em { font-style: normal; font-size: 8px; color: #8a7247; }
+
+
+/* ---------- 成就页 ---------- */
+.ach-top {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 14px; margin-bottom: 10px;
+  background: #ead9b4; border: 2px solid #b29a6b;
+}
+.ach-top-main { flex: 1; }
+.ach-top-main h3 { margin: 0; font-size: 17px; letter-spacing: 2px; }
+.ach-sub { font-size: 10px; color: #7d6b4d; margin-top: 2px; }
+.ach-bar { width: 220px; height: 9px; background: #c9b78e; border: 1px solid #a89167; }
+.ach-bar i { display: block; height: 100%; background: linear-gradient(90deg, #8fb06a, #e0b34f); }
+.ach-pct { font: 700 13px "Consolas", monospace; color: #6d5c41; width: 44px; text-align: right; }
+
 /* ---------- 触摸 ---------- */
 .touch-controls {
-  position: absolute; inset: 0; z-index: 38;
+  position: fixed; inset: 0; z-index: 39;
   pointer-events: none;
 }
 .dpad {
-  position: absolute; left: 22px; bottom: 20px;
-  width: 156px; height: 156px;
+  position: absolute;
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  width: 152px; height: 152px;
   display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;
   pointer-events: auto;
-  opacity: .82;
+  opacity: .86;
+  touch-action: none;
 }
 .dpad-btn {
   background: rgba(22, 42, 31, .82); color: #dce7c8;
-  border: 2px solid #78906f; font-size: 14px;
+  border: 2px solid #78906f; font-size: 15px;
   box-shadow: 0 3px 0 rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.08);
   touch-action: none;
 }
-.dpad-btn:active { background: rgba(87, 119, 77, .95); }
-.dpad-btn.up { grid-area: 1 / 2; border-radius: 6px 6px 0 0; }
-.dpad-btn.left { grid-area: 2 / 1; border-radius: 6px 0 0 6px; }
+.dpad-btn:active, .dpad-btn.pressed { background: rgba(87, 119, 77, .95); }
+.dpad-btn.up { grid-area: 1 / 2; border-radius: 8px 8px 0 0; }
+.dpad-btn.left { grid-area: 2 / 1; border-radius: 8px 0 0 8px; }
 .dpad-btn.center { grid-area: 2 / 2; background: rgba(22,42,31,.55); border-color: #536a52; }
-.dpad-btn.right { grid-area: 2 / 3; border-radius: 0 6px 6px 0; }
-.dpad-btn.down { grid-area: 3 / 2; border-radius: 0 0 6px 6px; }
-.touch-buttons {
-  position: absolute; right: 28px; bottom: 30px;
-  display: flex; align-items: flex-end; gap: 18px;
-  pointer-events: auto;
+.dpad-btn.center::after {
+  content: ""; display: block; width: 26px; height: 26px; margin: 0 auto;
+  border-radius: 50%; border: 2px solid rgba(160,186,150,.5);
 }
-.round-btn {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(47, 73, 52, .88); color: #f0e5c8;
-  border: 3px solid #94a986; box-shadow: 0 4px 0 rgba(0,0,0,.32), inset 0 0 0 2px rgba(0,0,0,.2);
-  font: 700 20px/1 "Consolas", monospace;
+.dpad-btn.right { grid-area: 2 / 3; border-radius: 0 8px 8px 0; }
+.dpad-btn.down { grid-area: 3 / 2; border-radius: 0 0 8px 8px; }
+.touch-buttons {
+  position: absolute;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 6px);
+  display: flex; align-items: flex-end; gap: 16px;
+  pointer-events: auto;
   touch-action: none;
 }
-.round-btn.a { background: rgba(168, 85, 66, .9); border-color: #e0b49b; width: 72px; height: 72px; }
+.round-btn {
+  width: 68px; height: 68px; border-radius: 50%;
+  background: rgba(47, 73, 52, .88); color: #f0e5c8;
+  border: 3px solid #94a986; box-shadow: 0 4px 0 rgba(0,0,0,.32), inset 0 0 0 2px rgba(0,0,0,.2);
+  font: 700 21px/1 "Consolas", monospace;
+  touch-action: none;
+}
+.round-btn.a { background: rgba(168, 85, 66, .9); border-color: #e0b49b; width: 78px; height: 78px; }
 .round-btn:active { transform: translateY(3px); }
 
-/* ---------- 横屏提示 ---------- */
-.rotate-hint { display: none; }
-@media (pointer: coarse) and (orientation: portrait) {
-  .rotate-hint {
-    position: fixed; inset: 0; z-index: 999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: #081511; color: #e7ddc2; gap: 10px;
-  }
-  .rotate-icon { font-size: 46px; transform: rotate(90deg); color: #c9b26f; margin-bottom: 6px; }
-  .rotate-hint div:nth-child(2) { font-size: 18px; letter-spacing: 4px; }
-  .rotate-hint small { font-size: 10px; color: #90a687; letter-spacing: 1px; }
+/* ---------- 移动端 ---------- */
+.rotate-hint { display: none !important; }
+
+.mobile-bar {
+  position: fixed; left: 0; right: 0;
+  top: var(--stage-bottom, 50%);
+  z-index: 41;
+  display: none; flex-direction: column; align-items: center; gap: 8px;
+  padding: 2px 12px;
+  pointer-events: none;
 }
+body.is-mobile.is-portrait .mobile-bar { display: flex; }
+.mobile-bar .mb-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  flex-wrap: wrap; pointer-events: auto;
+}
+.mobile-bar button {
+  padding: 9px 15px; background: rgba(28,52,38,.92); color: #e7ddc2;
+  border: 2px solid #6f8a6d; border-bottom-width: 4px;
+  font-size: 12px; letter-spacing: 1px;
+}
+.mobile-bar button:active { transform: translateY(2px); }
+.mobile-bar .mb-tip { font-size: 10px; color: rgba(190,210,178,.72); letter-spacing: 1px; }
+.mobile-bar .mb-hint {
+  font-size: 10px; letter-spacing: 1px;
+  color: rgba(150,175,140,.5);
+  text-align: center;
+}
+
+.mobile-bar .mb-quest {
+  pointer-events: auto;
+  display: flex; gap: 9px; align-items: flex-start;
+  width: min(92vw, 430px); padding: 10px 13px;
+  background: rgba(17, 34, 26, .9);
+  border-left: 3px solid #e9ba5f;
+  box-shadow: 0 3px 0 rgba(0,0,0,.25);
+}
+.mobile-bar .mbq-mark { color: #e9ba5f; font-size: 12px; line-height: 1.4; }
+.mobile-bar .mbq-body { min-width: 0; }
+.mobile-bar .mbq-body b { display: block; font-size: 13px; letter-spacing: 1px; color: #f3e9cb; }
+.mobile-bar .mbq-body span { display: block; margin-top: 3px; font-size: 11px; line-height: 1.6; color: #c3d2b6; }
+
+body.is-mobile.is-portrait #stage-wrap { align-items: flex-start; padding-top: max(6px, env(safe-area-inset-top)); }
+body.is-mobile.is-portrait #stage { box-shadow: 0 0 0 3px #1b2d24, 0 0 0 5px #405a48, 0 12px 30px rgba(0,0,0,.7); }
 
 @media (pointer: coarse) {
   .hud-controls-hint { display: none; }
+  .menu-tabs { overflow-x: auto; scrollbar-width: none; }
+  .menu-tabs::-webkit-scrollbar { display: none; }
+  .menu-tab { flex: none; }
+  .close-btn { width: 38px; height: 38px; font-size: 22px; }
+  .dialogue-box { cursor: pointer; }
+  .menu-body, .shop-list, .map-side { -webkit-overflow-scrolling: touch; }
+}
+
+/* 小屏上把关键文字放大一档，保证躺床上也能看清 */
+#stage.ui-boost .menu-tab { font-size: 15px; padding: 11px 13px; }
+#stage.ui-boost .menu-title { font-size: 24px; }
+#stage.ui-boost .menu-foot,
+#stage.ui-boost .shop-foot { font-size: 12px; }
+#stage.ui-boost .dialogue-text { font-size: 21px; line-height: 1.7; }
+#stage.ui-boost .dialogue-speaker { font-size: 14px; }
+#stage.ui-boost .battle-message { font-size: 20px; }
+#stage.ui-boost .party-card .card-name { font-size: 17px; }
+#stage.ui-boost .party-card .card-lv { font-size: 12px; }
+#stage.ui-boost .card-hp-row small { font-size: 11px; }
+#stage.ui-boost .quest-hint { font-size: 14px; }
+#stage.ui-boost .quest-reward { font-size: 12px; }
+#stage.ui-boost .quest-card h4 { font-size: 17px; }
+#stage.ui-boost .bag-row .bag-name { font-size: 15px; }
+#stage.ui-boost .bag-row .bag-cat { font-size: 11px; }
+#stage.ui-boost .bag-row .bag-count { font-size: 14px; }
+#stage.ui-boost .bag-detail p,
+#stage.ui-boost .modal-text,
+#stage.ui-boost .confirm-text { font-size: 14px; }
+#stage.ui-boost .modal-sub,
+#stage.ui-boost .stat-line { font-size: 12px; }
+#stage.ui-boost .move-pill { font-size: 12px; }
+#stage.ui-boost .move-pill b { font-size: 14px; }
+#stage.ui-boost .dex-card .dex-name { font-size: 13px; }
+#stage.ui-boost .dex-card .dex-state,
+#stage.ui-boost .dex-card .dex-no { font-size: 9px; }
+#stage.ui-boost .shop-item .shop-name { font-size: 15px; }
+#stage.ui-boost .shop-detail p { font-size: 14px; }
+#stage.ui-boost .move-name { font-size: 17px; }
+#stage.ui-boost .move-meta { font-size: 9px; }
+#stage.ui-boost .battle-btn span { font-size: 17px; }
+#stage.ui-boost .battle-prompt { font-size: 12px; }
+#stage.ui-boost .train-roster-row .tr-name { font-size: 13px; }
+#stage.ui-boost .tb-desc,
+#stage.ui-boost .mt-meta,
+#stage.ui-boost .train-tip,
+#stage.ui-boost .train-section small { font-size: 11px; }
+#stage.ui-boost .mt-title b,
+#stage.ui-boost .tb-head b { font-size: 14px; }
+#stage.ui-boost .ach-body small { font-size: 10px; }
+#stage.ui-boost .ach-bar { width: 150px; }
+#stage.ui-boost .ach-body b { font-size: 12px; }
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 460px) {
+  .dpad { width: 126px; height: 126px; left: max(8px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); }
+  .dpad-btn { font-size: 13px; }
+  .dpad-btn.center::after { width: 20px; height: 20px; }
+  .touch-buttons { gap: 12px; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); }
+  .round-btn { width: 58px; height: 58px; font-size: 18px; }
+  .round-btn.a { width: 66px; height: 66px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

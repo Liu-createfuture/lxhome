@@ -85,20 +85,46 @@
 
     setupResize() {
       window.addEventListener('resize', () => this.fitStage());
-      if (window.visualViewport) window.visualViewport.addEventListener('resize', () => this.fitStage());
+      window.addEventListener('orientationchange', () => setTimeout(() => this.fitStage(), 120));
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => this.fitStage());
+        window.visualViewport.addEventListener('scroll', () => this.fitStage());
+      }
+      if (window.screen && screen.orientation && screen.orientation.addEventListener) {
+        screen.orientation.addEventListener('change', () => setTimeout(() => this.fitStage(), 120));
+      }
+      // 输入框收起键盘后重新量一次尺寸
+      document.addEventListener('focusout', () => setTimeout(() => this.fitStage(), 120));
     },
 
     fitStage() {
+      // 正在输入名字时 iOS 键盘会压缩视口，先不要跟着缩放
+      const ae = document.activeElement;
+      if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
       const stage = document.getElementById('stage');
-      const vw = window.innerWidth, vh = window.innerHeight;
-      const scale = Math.max(.12, Math.min((vw - 22) / 960, (vh - 22) / 600));
-      stage.style.transform = `scale(${scale})`;
+      const vw = window.innerWidth, vh = Math.max(320, window.innerHeight);
+      const coarse = this.touchCoarse;
+      const portrait = vh > vw * 1.02;
+      const pad = coarse ? 6 : 22;
+      const scale = Math.max(.12, Math.min((vw - pad * 2) / 960, (vh - pad * 2) / 600));
+      const stageW = 960 * scale, stageH = 600 * scale;
+      const x = Math.round((vw - stageW) / 2);
+      // 竖屏：画面贴近顶部，下方留给触屏按键；横屏：垂直居中
+      const y = Math.round(coarse && portrait ? Math.max(6, pad) : (vh - stageH) / 2);
+      stage.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
       document.documentElement.style.setProperty('--stage-scale', scale);
+      document.body.classList.toggle('is-mobile', coarse);
+      document.body.classList.toggle('is-portrait', portrait);
+      // 小屏时整体放大面板里的关键文字
+      stage.classList.toggle('ui-boost', coarse && scale < 0.76);
+      document.documentElement.style.setProperty('--stage-bottom', Math.round(y + stageH + 10) + 'px');
     },
 
     setupInput() {
-      const isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      this.touchCoarse = isCoarse;
+      const mq = (q) => !!(window.matchMedia && window.matchMedia(q).matches);
+      const touchy = (navigator.maxTouchPoints || 0) > 0 &&
+        Math.min(window.innerWidth, window.innerHeight) < 900;
+      this.touchCoarse = mq('(pointer: coarse)') || touchy;
       // unlock audio on first gesture
       const unlock = () => {
         PKM.AUDIO.init();
@@ -170,27 +196,64 @@
 
       // touch buttons
       const touch = document.getElementById('touch-controls');
-      touch.querySelectorAll('[data-dir]').forEach(btn => {
-        const dir = btn.dataset.dir;
-        const down = (e) => {
-          e.preventDefault();
-          PKM.AUDIO.init();
-          if (B.active) { B.handleKey(dir); return; }
-          if (UI.isBlocking()) return;
-          G.stopAutoMove();
-          this.addDir(dir);
-          this.moveCooldown = 0;
-          if (!G.move) {
-            const ok = G.tryMove(dir);
-            if (!ok) this.moveCooldown = .2;
-          }
-        };
-        const up = (e) => { e.preventDefault(); this.removeDir(dir); };
-        btn.addEventListener('pointerdown', down);
-        btn.addEventListener('pointerup', up);
-        btn.addEventListener('pointercancel', up);
-        btn.addEventListener('pointerleave', up);
+      const dpad = touch.querySelector('.dpad');
+      this.padDir = null;
+      const paintPad = (dir) => {
+        dpad.querySelectorAll('[data-dir]').forEach(b => {
+          b.classList.toggle('pressed', b.dataset.dir === dir);
+        });
+      };
+      const releasePad = () => {
+        if (this.padDir) this.removeDir(this.padDir);
+        this.padDir = null;
+        paintPad(null);
+      };
+      const pressDir = (dir) => {
+        if (!dir || dir === this.padDir) return;
+        releasePad();
+        this.padDir = dir;
+        paintPad(dir);
+        if (B.active) { B.handleKey(dir); return; }
+        if (UI.isBlocking()) return;
+        G.stopAutoMove();
+        this.addDir(dir);
+        this.moveCooldown = 0;
+        if (!G.move && !G.paused) {
+          const ok = G.tryMove(dir);
+          if (!ok) this.moveCooldown = .2;
+        }
+      };
+      const readPad = (e) => {
+        const r = dpad.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const dx = e.clientX - cx, dy = e.clientY - cy;
+        if (Math.hypot(dx, dy) < r.width * .11) return null;
+        return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+      };
+      let padPointer = null;
+      dpad.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        PKM.AUDIO.init();
+        padPointer = e.pointerId;
+        try { dpad.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+        const dir = readPad(e);
+        if (dir) pressDir(dir);
+        else paintPad(null);
       });
+      dpad.addEventListener('pointermove', (e) => {
+        if (padPointer === null || e.pointerId !== padPointer) return;
+        e.preventDefault();
+        const dir = readPad(e);
+        if (dir) pressDir(dir);
+      });
+      const endPad = (e) => {
+        if (padPointer !== null && e.pointerId !== padPointer) return;
+        padPointer = null;
+        releasePad();
+      };
+      dpad.addEventListener('pointerup', endPad);
+      dpad.addEventListener('pointercancel', endPad);
+      dpad.addEventListener('lostpointercapture', endPad);
       touch.querySelectorAll('[data-touch]').forEach(btn => {
         btn.addEventListener('pointerdown', (e) => {
           e.preventDefault();
@@ -205,6 +268,41 @@
             UI.openMenu();
           }
         });
+      });
+
+      // 全屏 / 横屏
+      const fsEl = document.documentElement;
+      const requestFs = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen || fsEl.msRequestFullscreen;
+      const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      const lockLandscape = () => {
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            const p = screen.orientation.lock('landscape');
+            if (p && p.catch) p.catch(() => {});
+          }
+        } catch (err) { /* 部分浏览器不支持锁定，忽略 */ }
+      };
+      const toggleFs = () => {
+        try {
+          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (requestFs) {
+              const p = requestFs.call(fsEl);
+              if (p && p.then) p.then(lockLandscape).catch(() => {});
+              else lockLandscape();
+            }
+          } else if (exitFs) {
+            exitFs.call(document);
+          }
+        } catch (err) { /* 忽略 */ }
+        setTimeout(() => this.fitStage(), 260);
+      };
+      const mb = document.getElementById('mb-fullscreen');
+      if (mb) mb.addEventListener('click', toggleFs);
+      const mbMap = document.getElementById('mb-map');
+      if (mbMap) mbMap.addEventListener('click', () => {
+        PKM.AUDIO.init();
+        PKM.AUDIO.sfx('select');
+        UI.openMap();
       });
     },
 

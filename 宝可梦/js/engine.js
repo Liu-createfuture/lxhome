@@ -45,6 +45,8 @@ window.PKM = window.PKM || {};
         waypoints: { town_inn: true },
         runes: {},
         badges: [],
+        achievements: {},
+        trainerWins: 0,
         clock: 7 * 60 + 20,
         hour: 7 + 20 / 60,
         night: false,
@@ -94,7 +96,7 @@ window.PKM = window.PKM || {};
       const stats = this.monStats(speciesId, level);
       const s = this.state;
       const uid = s ? s.uid++ : Math.floor(Math.random() * 1e9);
-      return {
+      const mon = {
         uid,
         species: speciesId,
         level,
@@ -108,25 +110,176 @@ window.PKM = window.PKM || {};
         nickname: (opts && opts.nickname) || null,
         met: (opts && opts.met) || (this.state ? this.state.map : 'town'),
         metLevel: (opts && opts.metLevel) || level,
-        shiny: false
+        shiny: false,
+        sp: 0,
+        moveRanks: {},
+        training: { power: 0, guard: 0, swift: 0 }
+      };
+      this.normalizeMon(mon);
+      return mon;
+    },
+
+    /* 兼容旧存档：补上技能点、招式等级、特训数据 */
+    normalizeMon(mon) {
+      if (!mon) return mon;
+      if (typeof mon.sp !== 'number') mon.sp = 0;
+      if (!mon.moveRanks || typeof mon.moveRanks !== 'object') mon.moveRanks = {};
+      if (!mon.training || typeof mon.training !== 'object') mon.training = {};
+      ['power', 'guard', 'swift'].forEach(k => {
+        if (typeof mon.training[k] !== 'number') mon.training[k] = 0;
+      });
+      if (!Array.isArray(mon.moves)) mon.moves = this.movesFor(mon.species, mon.level);
+      mon.moves.forEach(mv => {
+        const rank = Math.max(1, Math.min(D.MOVE_RANK_MAX || 5, mon.moveRanks[mv.id] || 1));
+        mon.moveRanks[mv.id] = rank;
+        const maxPp = D.MOVES[mv.id].pp + (D.MOVE_RANK_PP[rank] || 0);
+        if (typeof mv.maxPp !== 'number' || mv.maxPp < maxPp) mv.maxPp = maxPp;
+        if (typeof mv.pp !== 'number' || mv.pp > mv.maxPp) mv.pp = mv.maxPp;
+      });
+      return mon;
+    },
+
+    /* 按特训重算能力值。healDiff 为真时，体力上限的增长会补到当前体力上。 */
+    recalcStats(mon, healDiff) {
+      if (!mon) return mon;
+      this.normalizeMon(mon);
+      const raw = this.monStats(mon.species, mon.level);
+      const t = mon.training;
+      const oldMax = mon.maxHp || raw.hp;
+      mon.stats = {
+        hp: Math.floor(raw.hp * (1 + .06 * t.guard)),
+        atk: Math.floor(raw.atk * (1 + .05 * t.power)),
+        def: Math.floor(raw.def * (1 + .04 * t.guard)),
+        spa: Math.floor(raw.spa * (1 + .05 * t.power)),
+        spd: Math.floor(raw.spd * (1 + .04 * t.guard)),
+        spe: Math.floor(raw.spe * (1 + .05 * t.swift))
+      };
+      mon.maxHp = mon.stats.hp;
+      if (healDiff) mon.hp = Math.min(mon.maxHp, Math.max(0, mon.hp) + Math.max(0, mon.maxHp - oldMax));
+      else mon.hp = Math.max(0, Math.min(mon.maxHp, mon.hp));
+      return mon;
+    },
+
+    /* ---------- 招式等级 ---------- */
+    moveRank(mon, moveId) {
+      if (!mon || !mon.moveRanks) return 1;
+      return Math.max(1, Math.min(D.MOVE_RANK_MAX || 5, mon.moveRanks[moveId] || 1));
+    },
+
+    /* 招式在实战中的实际数值：威力、命中、PP 上限、要害等级 */
+    effMove(mon, mv) {
+      if (!mv) return null;
+      if (mv.struggle) return { rank: 1, power: 40, acc: 100, maxPp: 1, crit: 0 };
+      const base = D.MOVES[mv.id] || { power: 0, acc: 100, pp: 1 };
+      const rank = this.moveRank(mon, mv.id);
+      const mul = (D.MOVE_RANK_POWER[rank - 1] || 1);
+      const accBonus = D.MOVE_RANK_ACC[rank] || 0;
+      return {
+        rank,
+        power: base.power ? Math.round(base.power * mul) : 0,
+        basePower: base.power || 0,
+        acc: base.acc === 0 ? 0 : Math.min(100, base.acc + accBonus),
+        maxPp: base.pp + (D.MOVE_RANK_PP[rank] || 0),
+        crit: (base.crit || 0) + (rank >= 5 ? 1 : 0)
       };
     },
+
+    upgradeMove(mon, index) {
+      if (!mon) return { ok: false, msg: '没有可以强化的对象。' };
+      const mv = mon.moves[index];
+      if (!mv) return { ok: false, msg: '找不到这个招式。' };
+      this.normalizeMon(mon);
+      const rank = this.moveRank(mon, mv.id);
+      const max = D.MOVE_RANK_MAX || 5;
+      if (rank >= max) return { ok: false, msg: '这个招式已经练到极限了。' };
+      if ((mon.sp || 0) <= 0) return { ok: false, msg: '技能点不够，先去战斗升级吧。' };
+      mon.sp--;
+      const oldMax = mv.maxPp;
+      mon.moveRanks[mv.id] = rank + 1;
+      const eff = this.effMove(mon, mv);
+      mv.maxPp = eff.maxPp;
+      mv.pp = Math.min(mv.maxPp, mv.pp + Math.max(0, mv.maxPp - oldMax));
+      this.autoSave();
+      return { ok: true, msg: `${D.MOVES[mv.id].name} 练到了 ${rank + 1} 级。`, rank: rank + 1 };
+    },
+
+    upgradeTraining(mon, key) {
+      if (!mon || !D.TRAINING[key]) return { ok: false, msg: '没有可以训练的项目。' };
+      this.normalizeMon(mon);
+      const max = D.TRAIN_MAX || 5;
+      if (mon.training[key] >= max) return { ok: false, msg: `${D.TRAINING[key].name}已经满了。` };
+      if ((mon.sp || 0) <= 0) return { ok: false, msg: '技能点不够，先去战斗升级吧。' };
+      mon.sp--;
+      mon.training[key]++;
+      this.recalcStats(mon, true);
+      this.autoSave();
+      return { ok: true, msg: `${this.nameOf(mon)}的${D.TRAINING[key].name}达到 ${mon.training[key]} 级。`, rank: mon.training[key] };
+    },
+
+    /* 自动把技能点分配到三条特训线上（优先补最低的一项） */
+    autoTrain(mon, times) {
+      if (!mon) return { ok: false, count: 0, msg: '没有可以训练的对象。' };
+      this.normalizeMon(mon);
+      let n = 0;
+      const max = D.TRAIN_MAX || 5;
+      while ((mon.sp || 0) > 0 && n < (times || 99)) {
+        const keys = Object.keys(D.TRAINING).filter(k => mon.training[k] < max);
+        if (!keys.length) break;
+        keys.sort((a, b) => mon.training[a] - mon.training[b]);
+        mon.training[keys[0]]++;
+        mon.sp--;
+        n++;
+      }
+      if (!n) return { ok: false, count: 0, msg: '技能点不足，或者特训已经满了。' };
+      this.recalcStats(mon, true);
+      this.autoSave();
+      return { ok: true, count: n, msg: `${this.nameOf(mon)}完成了 ${n} 级特训。` };
+    },
+
+    /* 教招式：slot 为要替换的招式位置，-1 表示新增一格 */
+    teachMove(mon, moveId, slot) {
+      if (!mon || !D.MOVES[moveId]) return { ok: false, msg: '这个招式无法学习。' };
+      this.normalizeMon(mon);
+      if (mon.moves.some(m => m.id === moveId)) return { ok: false, msg: `${this.nameOf(mon)}已经会这个招式了。` };
+      const entry = { id: moveId, pp: D.MOVES[moveId].pp, maxPp: D.MOVES[moveId].pp };
+      if (slot >= 0 && slot < mon.moves.length) {
+        const old = mon.moves[slot];
+        delete mon.moveRanks[old.id];
+        mon.moves[slot] = entry;
+      } else if (mon.moves.length < 4) {
+        mon.moves.push(entry);
+      } else {
+        return { ok: false, msg: '四个招式格都满了，需要替换一个。' };
+      }
+      mon.moveRanks[moveId] = 1;
+      this.normalizeMon(mon);
+      this.autoSave();
+      return { ok: true, msg: `${this.nameOf(mon)}学会了${D.MOVES[moveId].name}。` };
+    },
+
+    renameMon(mon, name) {
+      if (!mon) return false;
+      const clean = String(name || '').trim().slice(0, 6);
+      mon.nickname = clean && clean !== D.SPECIES[mon.species].name ? clean : null;
+      this.autoSave();
+      return true;
+    },
+
 
     nameOf(mon) { return mon.nickname || D.SPECIES[mon.species].name; },
 
     expNeeded(level) { return Math.floor(18 + level * level * 3.6); },
 
     gainExperience(mon, amount) {
-      const result = { gained: amount, levels: [], moves: [] };
+      const result = { gained: amount, levels: [], moves: [], sp: 0 };
       if (mon.level >= 100) return result;
       mon.exp += amount;
       while (mon.level < 100 && mon.exp >= this.expNeeded(mon.level)) {
         mon.exp -= this.expNeeded(mon.level);
-        const oldMax = mon.maxHp;
         mon.level++;
-        mon.stats = this.monStats(mon.species, mon.level);
-        mon.maxHp = mon.stats.hp;
-        mon.hp = Math.min(mon.maxHp, mon.hp + (mon.maxHp - oldMax));
+        this.recalcStats(mon, true);
+        mon.sp = (mon.sp || 0) + (D.SP_PER_LEVEL || 2);
+        result.sp += (D.SP_PER_LEVEL || 2);
         result.levels.push(mon.level);
         // learn newest move at this level
         const learnNow = D.SPECIES[mon.species].learnset.filter(x => x[0] === mon.level);
@@ -138,8 +291,10 @@ window.PKM = window.PKM || {};
             mon.moves.shift();
             mon.moves.push({ id: mid, pp: D.MOVES[mid].pp, maxPp: D.MOVES[mid].pp });
           }
+          mon.moveRanks[mid] = 1;
           result.moves.push(mid);
         }
+        this.normalizeMon(mon);
         const evo = D.SPECIES[mon.species].evolve;
         if (evo && mon.level >= evo.level) result.evolution = { from: mon.species, to: evo.to, mon };
       }
@@ -150,15 +305,14 @@ window.PKM = window.PKM || {};
       const evo = D.SPECIES[mon.species].evolve;
       if (!evo) return null;
       const oldName = D.SPECIES[mon.species].name;
-      const oldMax = mon.maxHp;
       mon.species = evo.to;
-      mon.stats = this.monStats(mon.species, mon.level);
-      mon.maxHp = mon.stats.hp;
-      mon.hp += mon.maxHp - oldMax;
-      mon.hp = Math.max(1, Math.min(mon.maxHp, mon.hp));
+      mon.sp = (mon.sp || 0) + (D.SP_EVOLVE || 3);
+      this.recalcStats(mon, true);
       this.markSeen(mon.species);
       this.markCaught(mon.species);
-      return { oldName, newName: D.SPECIES[evo.to].name };
+      const s = this.state;
+      if (s) s.flags.evolved = true;
+      return { oldName, newName: D.SPECIES[evo.to].name, sp: D.SP_EVOLVE || 3 };
     },
 
     markSeen(speciesId, state) {
@@ -866,8 +1020,12 @@ window.PKM = window.PKM || {};
       s.clock = s.clock || 7 * 60 + 20;
       s.hour = s.clock / 60;
       s.night = s.hour >= 19 || s.hour < 6;
+      s.achievements = s.achievements || {};
+      s.trainerWins = s.trainerWins || 0;
       if (!s.visual) s.visual = { x: s.player.x * TILE, y: s.player.y * TILE };
       this.state = s;
+      (s.party || []).forEach(m => this.normalizeMon(m));
+      (s.pc || []).forEach(m => this.normalizeMon(m));
       this.move = null;
       this.sinceEncounter = 0;
       return true;
@@ -875,6 +1033,33 @@ window.PKM = window.PKM || {};
 
     deleteSave() {
       try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    },
+
+    /* ---------- 成就 ---------- */
+    checkAchievements() {
+      const s = this.state;
+      if (!s || !D.ACHIEVEMENTS) return [];
+      s.achievements = s.achievements || {};
+      const unlocked = [];
+      for (const a of D.ACHIEVEMENTS) {
+        if (s.achievements[a.id]) continue;
+        let ok = false;
+        try { ok = !!a.cond(s, this); } catch (e) { ok = false; }
+        if (!ok) continue;
+        s.achievements[a.id] = Date.now();
+        const reward = a.reward || {};
+        if (reward.money) s.money += reward.money;
+        if (reward.item) s.bag[reward.item] = (s.bag[reward.item] || 0) + (reward.qty || 1);
+        unlocked.push(a);
+      }
+      if (unlocked.length) this.autoSave();
+      return unlocked;
+    },
+
+    achievementCount() {
+      const s = this.state;
+      if (!s || !s.achievements) return 0;
+      return Object.keys(s.achievements).length;
     },
 
     /* ---------- 任务 ---------- */
