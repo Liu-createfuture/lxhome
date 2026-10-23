@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>手写识别准确率回归测试</title>
+<style>
+  body { font: 13px/1.6 Consolas, monospace; padding: 16px; }
+  h3 { margin: 14px 0 6px; font-size: 14px; }
+  #out { white-space: pre-wrap; background: #f6f8fa; padding: 12px; border-radius: 8px; }
+  .fail { color: #c0392b; }
+</style>
+</head>
+<body>
+<pre id="out">running...</pre>
+<script src="../soft-keyboard/data/dict.js"></script>
+<script>window.SK = window.SK || {};</script>
+<script src="../soft-keyboard/modules/pinyin-parser.js"></script>
+<script src="../soft-keyboard/modules/dict-store.js"></script>
+<script src="../soft-keyboard/modules/keyboard-render.js"></script>
+<script src="../soft-keyboard/modules/handwriting.js"></script>
+<script>
+(function () {
+  var HW = window.SK.Handwriting;
+  var DS = window.SK.DictStore;
+  DS.init(window.SK_DICT_DATA);
+
+  var GRID = 48, PAD = 3, PROBE = 72, THRESH = 62;
+
+  var out = [];
+  function log(s) { out.push(s); document.getElementById('out').textContent = out.join('\n'); }
+
+  var probe = document.createElement('canvas');
+  probe.width = probe.height = PROBE;
+  var pctx = probe.getContext('2d');
+  var grid = document.createElement('canvas');
+  grid.width = grid.height = GRID;
+  var gctx = grid.getContext('2d');
+
+  function computeTransform(bw, bh) {
+    var avail = GRID - PAD * 2;
+    var sw = Math.max(1, bw), sh = Math.max(1, bh);
+    var iso = Math.min(avail / sw, avail / sh);
+    var ratio = Math.min(sw, sh) / Math.max(sw, sh);
+    var sx, sy;
+    if (ratio < 0.22) { sx = iso; sy = iso; }
+    else {
+      var blend = 0.55 * Math.min(1, (ratio - 0.22) / 0.28);
+      sx = (1 - blend) * iso + blend * (avail / sw);
+      sy = (1 - blend) * iso + blend * (avail / sh);
+    }
+    return { sx: sx, sy: sy, dw: Math.max(1, Math.round(sw * sx)), dh: Math.max(1, Math.round(sh * sy)),
+      dx: (GRID - sw * sx) / 2, dy: (GRID - sh * sy) / 2, aspect: sw / (sw + sh) };
+  }
+
+  // 用测试字体渲染字形 → 48×48 灰度矩阵（模拟用户墨迹的占位与形状）
+  function renderTestAlpha(ch, font, jitter) {
+    var j = jitter || {};
+    pctx.clearRect(0, 0, PROBE, PROBE);
+    pctx.fillStyle = '#000';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'middle';
+    pctx.font = Math.floor(PROBE * (j.fontScale || 0.84)) + 'px ' + font;
+    pctx.fillText(ch, PROBE / 2, PROBE / 2 + PROBE * 0.02);
+    var src = pctx.getImageData(0, 0, PROBE, PROBE).data;
+    var minX = PROBE, minY = PROBE, maxX = -1, maxY = -1;
+    for (var y = 0; y < PROBE; y++) {
+      for (var x = 0; x < PROBE; x++) {
+        if (src[(y * PROBE + x) * 4 + 3] > THRESH) {
+          if (x < minX) minX = x; if (x > maxX) maxX = x;
+          if (y < minY) minY = y; if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) return null;
+    var bw = maxX - minX + 1, bh = maxY - minY + 1;
+    var tf = computeTransform(bw * (j.sx || 1), bh * (j.sy || 1));
+    gctx.clearRect(0, 0, GRID, GRID);
+    gctx.drawImage(probe, minX, minY, bw, bh, tf.dx, tf.dy, tf.dw, tf.dh);
+
+    var data = gctx.getImageData(0, 0, GRID, GRID).data;
+    var alpha = new Uint8Array(GRID * GRID);
+    for (var i = 0, p = 3; i < alpha.length; i++, p += 4) alpha[i] = data[p];
+
+    // 模拟笔迹粗细：按比例膨胀/腐蚀
+    if (j.thicken) alpha = morph(alpha, j.thicken);
+    return { alpha: alpha, aspect: tf.aspect };
+  }
+
+  function morph(alpha, r) {
+    var outA = new Uint8Array(alpha.length);
+    for (var y = 0; y < GRID; y++) {
+      for (var x = 0; x < GRID; x++) {
+        var idx = y * GRID + x;
+        var a = alpha[idx];
+        var best = a;
+        for (var dy = -r; dy <= r; dy++) {
+          for (var dx = -r; dx <= r; dx++) {
+            var ny = y + dy, nx = x + dx;
+            if (ny < 0 || ny >= GRID || nx < 0 || nx >= GRID) continue;
+            var v = alpha[ny * GRID + nx];
+            if (v > best) best = v;
+          }
+        }
+        outA[idx] = best;
+      }
+    }
+    return outA;
+  }
+
+  function run(label, testChars, font, jitter) {
+    var top1 = 0, top5 = 0, top10 = 0, total = 0, ms = 0;
+    var misses = [];
+    testChars.forEach(function (ch) {
+      var r = renderTestAlpha(ch, font, jitter);
+      if (!r) return;
+      var t0 = performance.now();
+      var res = HW._recognizeAlpha(r.alpha, { aspect: r.aspect });
+      ms += performance.now() - t0;
+      total++;
+      var rank = -1;
+      for (var i = 0; i < res.length; i++) { if (res[i].char === ch) { rank = i + 1; break; } }
+      if (rank === 1) top1++;
+      if (rank > 0 && rank <= 5) top5++;
+      if (rank > 0 && rank <= 10) top10++;
+      if (rank !== 1) misses.push(ch + (rank > 0 ? '#' + rank : '#-'));
+    });
+    var line = label + '  n=' + total +
+      '  top1=' + (100 * top1 / total).toFixed(1) + '%' +
+      '  top5=' + (100 * top5 / total).toFixed(1) + '%' +
+      '  top10=' + (100 * top10 / total).toFixed(1) + '%' +
+      '  ' + (ms / total).toFixed(1) + 'ms/字';
+    log(line);
+    if (misses.length) log('   miss: ' + misses.slice(0, 40).join(' '));
+    return { top1: top1 / total, top5: top5 / total, top10: top10 / total, ms: ms / total };
+  }
+
+  var qs = (location.search || '').replace(/^\?/, '');
+  var weightOverride = {};
+  qs.split('&').forEach(function (kv) {
+    var i = kv.indexOf('=');
+    if (i < 0) return;
+    var k = kv.slice(0, i), v = Number(kv.slice(i + 1));
+    if (k && !isNaN(v)) weightOverride[k] = v;
+  });
+
+  try {
+    if (weightOverride.t3 !== undefined || weightOverride.t2 !== undefined) {
+      HW._setFontTiers(weightOverride.t3, weightOverride.t2);
+      delete weightOverride.t3; delete weightOverride.t2;
+    }
+    var pool = DS.getCommonChars(6500).map(function (e) { return e.w; });
+    var t0 = performance.now();
+    HW._buildTemplates(pool);
+    log('字库构建：' + pool.length + ' 字，模板 ' + HW._templateStats().templates +
+        ' 个，特征 ' + (HW._templateStats().featureBytes / 1048576).toFixed(1) + ' MB，' +
+        ((performance.now() - t0) / 1000).toFixed(1) + 's');
+    if (weightOverride.t3 !== undefined || weightOverride.t2 !== undefined) {
+      log('字体分层：' + HW._setFontTiers(weightOverride.t3, weightOverride.t2).join(' / '));
+      delete weightOverride.t3; delete weightOverride.t2;
+    }
+    if (Object.keys(weightOverride).length) {
+      HW._setWeights(weightOverride);
+      log('权重覆盖：' + JSON.stringify(HW._weights));
+    }
+    log('');
+
+    // 测试集：常用 3000 字里每 11 个取 1 个，取 200 个（避开首批 450 字）
+    var step = 11, take = 200;
+    if (qs.indexOf('quick=1') >= 0) { step = 19; take = 140; }
+    var cand = pool.slice(500, 3500).filter(function (_c, i) { return i % step === 0; }).slice(0, take);
+    log('测试字数 ' + cand.length);
+
+    var rows = [];
+    rows.push(run('[宋体 SimSun]', cand, 'SimSun'));
+    rows.push(run('[等线 DengXian]', cand, 'DengXian'));
+    rows.push(run('[仿宋 FangSong]', cand, 'FangSong'));
+    rows.push(run('[宋体+抖动]', cand, 'SimSun', { fontScale: 0.8, sx: 1.06, sy: 0.94, thicken: 1 }));
+    rows.push(run('[等线+抖动]', cand, 'DengXian', { fontScale: 0.8, sx: 0.92, sy: 1.08, thicken: 1 }));
+    var avg1 = rows.reduce(function (a, r) { return a + r.top1; }, 0) / rows.length;
+    var avg5 = rows.reduce(function (a, r) { return a + r.top5; }, 0) / rows.length;
+    var avgMs = rows.reduce(function (a, r) { return a + r.ms; }, 0) / rows.length;
+    log('=== 五组平均 top1=' + (avg1 * 100).toFixed(1) + '%  top5=' + (avg5 * 100).toFixed(1) +
+        '%  ' + avgMs.toFixed(1) + 'ms ===');
+
+    document.title = 'DONE';
+  } catch (e) {
+    log('ERROR: ' + (e && e.stack || e));
+    document.title = 'ERROR';
+  }
+})();
+</script>
+</body>
+</html>

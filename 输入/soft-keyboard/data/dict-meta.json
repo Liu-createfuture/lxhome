@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "name": "本地拼音词库（大容量分片版 · 通用规范汉字 + 20 万级词条）",
+    "version": "4.0.0",
+    "singleCount": 11825,
+    "charCount": 8703,
+    "wordCount": 317258,
+    "total": 329083,
+    "shards": 5,
+    "isFallback": false
+  },
+  "shards": [
+    62000,
+    62000,
+    62000,
+    62000,
+    9258
+  ],
+  "polyCorrected": 5383
+}

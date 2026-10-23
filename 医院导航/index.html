@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>院内导航 · 3D 室内导航 Demo</title>
+<link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- 3D 画布 -->
+  <div id="scene"></div>
+  <div id="labels" class="labels"></div>
+
+  <!-- 顶部：楼栋 + 搜索 + 帮助 -->
+  <header class="topbar">
+    <div class="building">
+      <span class="b-dot"></span>
+      <select id="buildingSel" aria-label="选择楼栋"></select>
+    </div>
+    <div class="search" id="searchBox">
+      <span class="s-ico">🔍</span>
+      <input id="searchInput" type="search" placeholder="搜索科室 / 检查 / 卫生间 / 取药" autocomplete="off" />
+      <button id="searchClear" class="s-clear" aria-label="清空">✕</button>
+    </div>
+    <button id="helpBtn" class="icon-btn" aria-label="帮助">?</button>
+  </header>
+
+  <!-- 快捷导航 -->
+  <div class="chips" id="chips">
+    <button class="chip" data-chip="急诊"><span>🚨</span>急诊</button>
+    <button class="chip" data-chip="药房"><span>💊</span>取药</button>
+    <button class="chip" data-chip="卫生间"><span>🚻</span>卫生间</button>
+    <button class="chip" data-chip="出口"><span>🚪</span>出口</button>
+    <button class="chip" data-chip="无障碍电梯"><span>♿</span>无障碍电梯</button>
+  </div>
+
+  <!-- 搜索结果 -->
+  <div id="searchPanel" class="search-panel"></div>
+
+  <!-- 楼层选择 -->
+  <div class="floor-rail" id="floorRail"></div>
+
+  <!-- 复位 -->
+  <button id="resetBtn" class="fab" aria-label="重置视角">
+    <span class="fab-ico">⤢</span><span class="fab-txt">复位</span>
+  </button>
+
+  <!-- 底部面板 -->
+  <section id="sheet" class="sheet"></section>
+
+  <!-- 演示中的提示条 -->
+  <div id="demoBar" class="demo-bar">
+    <span class="pulse"></span> 路线演示中 · 小人正在带路
+  </div>
+
+  <!-- 提示 -->
+  <div id="toast" class="toast"></div>
+
+  <!-- 加载 -->
+  <div id="loading" class="loading">
+    <div class="loading-card">
+      <div class="model-ico">🏥</div>
+      <div class="loading-title" id="loadingTitle">正在加载 3D 场景</div>
+      <div class="bar"><i id="loadBar"></i></div>
+      <div class="loading-pct"><span id="loadPct">0</span>%</div>
+      <div class="loading-tip">首次加载建议在 Wi-Fi 环境下使用</div>
+    </div>
+  </div>
+
+  <!-- 帮助 -->
+  <div id="helpModal" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>使用帮助</h3>
+        <button class="icon-btn" id="helpClose" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4>怎么用</h4>
+        <ol>
+          <li>左右拖动旋转视角，双指 / 滚轮缩放，右键拖动平移；</li>
+          <li>点击地图上的圆形图标，或直接在顶部搜索科室；</li>
+          <li>在点位详情里点<b>【去这里】</b>，选择起点与路线类型，开始导航；</li>
+          <li>导航中可点<b>【演示路线】</b>让镜头带你走一遍全程。</li>
+        </ol>
+        <h4>三种路线的区别</h4>
+        <div class="route-help">
+          <div><b>普通路线</b><span>距离最短，允许走楼梯、扶梯。</span></div>
+          <div><b>无障碍路线</b><span>自动避开台阶与扶梯，只走平缓通道和无障碍电梯，适合轮椅、婴儿车、行动不便者。</span></div>
+          <div><b>急诊优先</b><span>仅在急诊入口发起时出现，优先急救通道，避开人流密集区。</span></div>
+        </div>
+        <h4>关于本 Demo</h4>
+        <p class="muted">本页面为 PRD 的可运行原型：3D 建筑由程序化白模生成（真实项目替换为 glb_url 楼层模型），路网与 POI 为内置样例数据，路径规划为前端真实 Dijkstra 计算。一期不含室内定位，起点需手动选择。</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="src/data.js"></script>
+<script src="src/path.js"></script>
+<script src="src/scene.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>

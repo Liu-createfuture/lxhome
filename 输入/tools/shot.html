@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>布局截图</title>
+<link rel="stylesheet" href="../soft-keyboard/soft-keyboard.css">
+<style>
+  body { margin: 0; padding: 24px; background: #f7f9fc; font-family: -apple-system, 'Microsoft YaHei', sans-serif; }
+  .box { max-width: 700px; margin: 0 auto; }
+  input, textarea { width: 100%; padding: 10px; border: 1px solid #e4eaf2; border-radius: 10px; font-size: 15px; margin-bottom: 10px; }
+  h1 { font-size: 20px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>布局预览</h1>
+  <input id="i1" type="text" value="今天天气不错，我们去重庆吃火锅">
+  <textarea id="i2" rows="3"></textarea>
+</div>
+<script src="../soft-keyboard/data/dict.js"></script>
+<script src="../soft-keyboard/modules/pinyin-parser.js"></script>
+<script src="../soft-keyboard/modules/dict-store.js"></script>
+<script src="../soft-keyboard/modules/keyboard-render.js"></script>
+<script src="../soft-keyboard/modules/candidates.js"></script>
+<script src="../soft-keyboard/modules/handwriting.js"></script>
+<script src="../soft-keyboard/soft-keyboard.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var mode = q.get('mode') || 'zh';
+  var kb = window.SK.SoftKeyboard.create({
+    targets: '#i1, #i2',
+    shardBase: '../soft-keyboard/data/',
+  });
+  var i1 = document.getElementById('i1');
+  i1.focus();
+  kb.show();
+  i1.selectionStart = i1.selectionEnd = i1.value.length;
+
+  if (mode === 'dark') kb.setTheme(true);
+
+  if (mode === 'pinyin') {
+    'nihao'.split('').forEach(function (c) {
+      var keys = document.querySelectorAll('.sk-page[data-mode="letter"] .sk-key');
+      for (var i = 0; i < keys.length; i++) {
+        if (keys[i].textContent === c) {
+          keys[i].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+          keys[i].dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0 }));
+          break;
+        }
+      }
+    });
+  } else if (mode !== 'zh' && mode !== 'en' && mode !== 'dark') {
+    kb.setMode(mode);
+  }
+
+  if (mode === 'hand') {
+    setTimeout(function () {
+      var canvas = document.querySelector('.sk-hand-canvas');
+      var r = canvas.getBoundingClientRect();
+      var strokes = q.get('ch') === 'kou'
+        ? [[[0.25, 0.2], [0.25, 0.8]], [[0.25, 0.8], [0.78, 0.8]], [[0.78, 0.8], [0.78, 0.2]], [[0.78, 0.2], [0.24, 0.2]]]
+        : [[[0.2, 0.32], [0.8, 0.32]], [[0.5, 0.18], [0.5, 0.84]], [[0.5, 0.62], [0.18, 0.9]]];
+      var si = 0;
+      function next() {
+        if (si >= strokes.length) return;
+        var pts = strokes[si++];
+        function ev(type, p) {
+          canvas.dispatchEvent(new PointerEvent(type, {
+            bubbles: true, pointerId: 1, isPrimary: true,
+            clientX: r.left + p[0] * r.width, clientY: r.top + p[1] * r.height,
+          }));
+        }
+        ev('pointerdown', pts[0]);
+        for (var i = 1; i < pts.length; i++) ev('pointermove', pts[i]);
+        ev('pointerup', pts[pts.length - 1]);
+        setTimeout(next, 30);
+      }
+      next();
+    }, 600);
+  }
+})();
+</script>
+</body>
+</html>

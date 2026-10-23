@@ -1,0 +1,12 @@
+bin/
+_dist/
+.git/
+*.log
+cloudflared.log
+deploy.log
+server.js
+refresh_nav.py
+*.bat
+*.ps1
+.workbuddy/
+node_modules/

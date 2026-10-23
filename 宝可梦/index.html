@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1e18">
+  <meta name="description" content="宝可梦：森之秘语 —— 一款原创像素风宝可梦同人小游戏。探索青苔镇与萤火森林，收集伙伴，点亮森林的光。">
+  <title>宝可梦：森之秘语 · Whisper of the Woods</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage-wrap">
+    <div id="stage">
+      <!-- 世界画面 -->
+      <canvas id="world-canvas" width="320" height="200" aria-label="游戏画面"></canvas>
+
+      <!-- 游戏 HUD -->
+      <div id="hud" class="hidden">
+        <div class="hud-top">
+          <div class="location-card pixel-panel">
+            <div class="loc-row"><span class="loc-dot"></span><span id="loc-name">青苔镇</span></div>
+            <div class="loc-sub"><span id="loc-time">07:20</span><span class="loc-sep">·</span><span id="loc-phase">清晨</span></div>
+          </div>
+          <div class="party-dock pixel-panel" id="party-dock"></div>
+        </div>
+        <div id="quest-strip" class="quest-strip">
+          <span class="quest-mark">◆</span>
+          <span id="quest-text">离开青苔镇，沿着微风小径向北走。</span>
+        </div>
+
+        <div id="minimap-panel" class="minimap-panel">
+          <div class="minimap-head">
+            <span class="minimap-kicker">LIVE MAP</span>
+            <b id="minimap-name">青苔镇</b>
+            <button id="minimap-open" class="minimap-open">展开</button>
+          </div>
+          <canvas id="minimap-canvas" width="190" height="116"></canvas>
+          <div class="minimap-foot">
+            <span id="minimap-objective">◆ 苔爷爷</span>
+            <span id="minimap-time">07:20</span>
+          </div>
+        </div>
+
+        <div id="nav-hud" class="nav-hud hidden">
+          <div class="nav-compass"><div class="nav-arrow" id="nav-arrow">➤</div></div>
+          <div class="nav-copy">
+            <div class="nav-kicker">当前目标</div>
+            <div class="nav-target" id="nav-target">苔爷爷</div>
+            <div class="nav-meta" id="nav-meta">青苔镇 · 3 步 · 西南</div>
+          </div>
+          <button class="nav-map-btn" id="nav-map-btn"><span class="key-cap">M</span>地图</button>
+        </div>
+        <div id="interact-prompt" class="interact-prompt hidden">
+          <span class="key-cap">Z</span><span id="interact-text">交谈</span>
+        </div>
+        <div id="toast-layer" class="toast-layer"></div>
+        <div class="hud-controls-hint">鼠标点击移动 · Z 互动 · X 菜单 · M 地图</div>
+      </div>
+
+      <!-- 屏幕质感 -->
+      <div class="screen-glass"></div>
+      <div class="scanlines"></div>
+      <div class="screen-glare"></div>
+
+      <!-- 触摸控制 -->
+      <div id="touch-controls" class="touch-controls hidden">
+        <div class="dpad">
+          <button class="dpad-btn up" data-dir="up" aria-label="上">▲</button>
+          <button class="dpad-btn left" data-dir="left" aria-label="左">◀</button>
+          <button class="dpad-btn center" aria-hidden="true"></button>
+          <button class="dpad-btn right" data-dir="right" aria-label="右">▶</button>
+          <button class="dpad-btn down" data-dir="down" aria-label="下">▼</button>
+        </div>
+        <div class="touch-buttons">
+          <button class="round-btn" data-touch="b" aria-label="菜单">B</button>
+          <button class="round-btn a" data-touch="a" aria-label="互动">A</button>
+        </div>
+      </div>
+
+      <!-- 地图名横幅 -->
+      <div id="map-banner" class="map-banner">
+        <div class="map-banner-line"></div>
+        <div class="map-banner-name" id="map-banner-name"></div>
+        <div class="map-banner-sub" id="map-banner-sub"></div>
+      </div>
+
+      <!-- 对话框 -->
+      <div id="dialogue-layer" class="dialogue-layer hidden">
+        <div class="dialogue-box pixel-panel">
+          <div class="dialogue-speaker" id="dialogue-speaker"></div>
+          <div class="dialogue-text" id="dialogue-text"></div>
+          <div class="dialogue-next" id="dialogue-next">▼</div>
+          <div class="dialogue-choices hidden" id="dialogue-choices"></div>
+        </div>
+      </div>
+
+      <!-- 主菜单 -->
+      <div id="menu-layer" class="menu-layer hidden">
+        <div class="menu-window pixel-panel">
+          <div class="menu-head">
+            <div>
+              <div class="menu-kicker">TRAINER'S NOTEBOOK</div>
+              <div class="menu-title" id="menu-title">旅人手记</div>
+            </div>
+            <div class="menu-player">
+              <span id="menu-player-name">小森</span>
+              <span class="menu-money" id="menu-money">₽ 800</span>
+            </div>
+            <button class="menu-map-open" id="menu-map-btn">旅途地图</button>
+            <button class="close-btn" id="menu-close" aria-label="关闭">×</button>
+          </div>
+          <div class="menu-tabs" id="menu-tabs"></div>
+          <div class="menu-body" id="menu-body"></div>
+          <div class="menu-foot">
+            <span><span class="key-cap">X</span> 关闭</span>
+            <span id="menu-foot-note">旅程会自动记录。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 商店 -->
+      <div id="shop-layer" class="shop-layer hidden">
+        <div class="shop-window pixel-panel">
+          <div class="shop-head">
+            <div>
+              <div class="menu-kicker">SUPPLY &amp; STORIES</div>
+              <div class="shop-title" id="shop-title">青苔杂货铺</div>
+            </div>
+            <div class="shop-money">₽ <span id="shop-money">800</span></div>
+            <button class="close-btn" id="shop-close" aria-label="离开">×</button>
+          </div>
+          <div class="shop-content">
+            <div class="shop-list" id="shop-list"></div>
+            <div class="shop-detail" id="shop-detail"></div>
+          </div>
+          <div class="shop-foot">
+            <span>“带够伤药，路才走得远。”</span>
+            <span><span class="key-cap">X</span> 离开</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 旅途地图 -->
+      <div id="map-layer" class="map-layer hidden">
+        <div class="map-window pixel-panel">
+          <div class="map-head">
+            <div>
+              <div class="menu-kicker">JOURNEY ATLAS</div>
+              <div class="map-title">旅途地图</div>
+            </div>
+            <div class="map-head-info">
+              <span id="map-time">07:20 · 清晨</span>
+              <span id="map-money">₽ 800</span>
+            </div>
+            <button class="close-btn" id="map-close" aria-label="关闭地图">×</button>
+          </div>
+          <div class="map-content">
+            <div class="map-region-panel">
+              <canvas id="region-map" width="600" height="360"></canvas>
+              <div class="map-legend">
+                <span><i class="lg-dot current"></i>当前位置</span>
+                <span><i class="lg-dot target"></i>任务目标</span>
+                <span><i class="lg-dot waypoint"></i>传送点</span>
+                <span><i class="lg-dot visited"></i>已探索</span>
+              </div>
+              <div class="map-region-note">
+                <div class="map-note-label">旅途札记</div>
+                <div class="map-note-text" id="map-region-note">黄色虚线指向当前追踪目标。跨区域时，它会先带你走到正确的出口。</div>
+              </div>
+            </div>
+            <aside class="map-side">
+              <div class="map-area-head">
+                <div>
+                  <div class="menu-kicker">CURRENT AREA</div>
+                  <div class="map-area-name" id="map-area-name">青苔镇</div>
+                </div>
+                <button class="mini-toggle" id="map-guide-toggle">导航线 开</button>
+              </div>
+              <canvas id="local-map" width="320" height="200"></canvas>
+              <div class="map-objective" id="map-objective">
+                <span class="map-objective-mark">◆</span>
+                <div><small>当前追踪</small><b id="map-objective-name">苔爷爷</b></div>
+              </div>
+              <div class="map-waypoints-head">
+                <span>快速移动点</span>
+                <span>已记录 <b id="map-wp-count">1</b> / <b id="map-wp-total">7</b></span>
+              </div>
+              <div class="map-waypoint-list" id="map-waypoint-list"></div>
+            </aside>
+          </div>
+          <div class="map-foot">
+            <span>黄色虚线会指向当前追踪目标 · 跨区域时会引导到出口</span>
+            <span><span class="key-cap">M</span> / <span class="key-cap">X</span> 关闭</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 通用弹窗 -->
+      <div id="modal-layer" class="modal-layer hidden">
+        <div class="modal-window pixel-panel" id="modal-window"></div>
+      </div>
+
+      <!-- 战斗 -->
+      <div id="battle-layer" class="battle-layer hidden">
+        <canvas id="battle-bg" width="320" height="200"></canvas>
+        <div id="battle-scene" class="battle-scene">
+          <div class="battle-hud enemy-hud pixel-panel">
+            <div class="battle-name-row"><span id="battle-enemy-name">苔团团</span><span id="battle-enemy-lv">Lv.5</span></div>
+            <div class="hp-line"><span class="hp-label">HP</span><div class="hp-track"><i id="battle-enemy-hp" class="hp-fill"></i></div><small id="battle-enemy-hptext">20/20</small></div>
+            <div class="battle-hud-bottom"><div id="battle-enemy-status" class="status-chip empty"></div><div id="battle-enemy-team" class="team-dots"></div></div>
+          </div>
+
+          <div id="enemy-combatant" class="combatant enemy">
+            <div class="sprite-shadow"></div>
+            <canvas id="enemy-sprite" width="160" height="160"></canvas>
+          </div>
+
+          <div id="player-combatant" class="combatant player">
+            <div class="sprite-shadow"></div>
+            <canvas id="player-sprite" width="160" height="160"></canvas>
+          </div>
+
+          <div class="battle-hud player-hud pixel-panel">
+            <div class="battle-name-row"><span id="battle-player-name">芽芽鹿</span><span id="battle-player-lv">Lv.5</span></div>
+            <div class="hp-line"><span class="hp-label">HP</span><div class="hp-track"><i id="battle-player-hp" class="hp-fill"></i></div><small id="battle-player-hptext">20/20</small></div>
+            <div class="exp-line"><span>EXP</span><div class="exp-track"><i id="battle-player-exp"></i></div><small id="battle-player-exptext">0/100</small></div>
+            <div class="battle-hud-bottom"><div id="battle-player-status" class="status-chip empty"></div></div>
+          </div>
+
+          <div id="battle-fx" class="battle-fx"></div>
+          <div id="battle-message" class="battle-message pixel-panel">野生的宝可梦出现了！</div>
+          <div id="battle-actions" class="battle-actions"></div>
+          <div id="battle-submenu" class="battle-submenu hidden"></div>
+        </div>
+      </div>
+
+      <!-- 标题画面 -->
+      <div id="title-screen" class="title-screen">
+        <canvas id="title-canvas" width="320" height="200" aria-label="森林夜景"></canvas>
+        <div class="title-tint"></div>
+        <div class="title-content">
+          <div class="title-kicker"><span></span> A PIXEL MONSTER TALE <span></span></div>
+          <div class="title-series">宝可梦</div>
+          <h1 class="title-logo">森之秘语</h1>
+          <div class="title-en">WHISPER OF THE WOODS</div>
+          <p class="title-sub">萤火森林的最后一盏灯，<br>等你点亮。</p>
+          <div class="title-menu">
+            <button class="title-btn primary" id="btn-new"><span>新的冒险</span><small>NEW JOURNEY</small></button>
+            <button class="title-btn" id="btn-continue"><span>继续旅程</span><small>CONTINUE</small></button>
+            <button class="title-btn" id="btn-help"><span>操作说明</span><small>HOW TO PLAY</small></button>
+          </div>
+          <div class="title-foot">原创同人作品 · 键盘与触屏均可游玩</div>
+        </div>
+        <div class="title-meta">
+          <span id="title-save-info">还没有旅程记录</span>
+          <span>v1.0.0</span>
+        </div>
+        <div class="title-fireflies" aria-hidden="true"></div>
+      </div>
+
+      <!-- 序章 -->
+      <div id="intro-screen" class="intro-screen hidden">
+        <div class="intro-bg"></div>
+        <div class="intro-frame">
+          <div class="intro-portrait-wrap">
+            <div class="portrait-frame">
+              <canvas id="intro-portrait" width="160" height="160"></canvas>
+            </div>
+            <div class="portrait-caption">苔爷爷<br><small>森林研究者</small></div>
+            <div class="intro-leaf-deco">✦</div>
+          </div>
+          <div class="intro-copy pixel-panel">
+            <div class="intro-kicker" id="intro-kicker">序章 · 风从森林来</div>
+            <div class="intro-text" id="intro-text"></div>
+            <div class="intro-name hidden" id="intro-name">
+              <label for="player-name">旅人，你叫什么名字？</label>
+              <div class="name-row">
+                <input id="player-name" maxlength="6" value="小森" autocomplete="off" spellcheck="false">
+                <button id="btn-name-ok">写下名字</button>
+              </div>
+              <small>最多 6 个字。以后也可以在心里改名。</small>
+            </div>
+            <div class="starter-picker hidden" id="starter-picker">
+              <div class="starter-intro">选一只伙伴，和它一起走进森林吧。</div>
+              <div class="starter-cards" id="starter-cards"></div>
+              <div class="starter-foot">
+                <div id="starter-note">每一种相遇，都会长成不同的路。</div>
+                <button id="btn-starter-ok" disabled>和它一起出发</button>
+              </div>
+            </div>
+            <div class="intro-next" id="intro-next">点击继续 <span>▼</span></div>
+          </div>
+        </div>
+        <div class="intro-scan"></div>
+      </div>
+
+      <!-- 结局 -->
+      <div id="ending-screen" class="ending-screen hidden">
+        <canvas id="ending-canvas" width="320" height="200"></canvas>
+        <div class="ending-vignette"></div>
+        <div class="ending-content">
+          <div class="ending-kicker">EPILOGUE · 森林的黎明</div>
+          <h2 id="ending-title">光，回来了。</h2>
+          <p id="ending-text">萤火森林重新亮起的那天，<br>你在祭坛前坐了很久。</p>
+          <div class="ending-credits" id="ending-credits">
+            <div class="credit-row"><span>企划 / 程序 / 美术</span><b>森林里的风</b></div>
+            <div class="credit-row"><span>音乐</span><b>原创芯片音源</b></div>
+            <div class="credit-row"><span>特别感谢</span><b>每一位慢慢走路的旅人</b></div>
+          </div>
+          <button class="ending-btn" id="ending-close">继续旅程</button>
+          <div class="ending-note">森之守望者似乎还在祭坛深处沉睡……</div>
+        </div>
+      </div>
+
+      <!-- 过场遮罩 -->
+      <div id="fade-layer" class="fade-layer"></div>
+      <div id="flash-layer" class="flash-layer"></div>
+
+    </div>
+
+    <!-- 横屏提示（位于缩放舞台之外） -->
+    <div id="rotate-hint" class="rotate-hint">
+      <div class="rotate-icon">▭</div>
+      <div>请把设备横过来</div>
+      <small>森林在横屏里更宽敞</small>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/art.js"></script>
+<script src="js/render.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/guide.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

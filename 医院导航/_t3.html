@@ -1,0 +1,21 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%}#scene{position:absolute;inset:0}</style></head>
+<body><div id="scene"></div><div id="labels"></div><pre id="log" style="position:relative;z-index:9;color:#c00;font:12px monospace"></pre>
+<script>window.__NO_LOOP__=true;</script>
+<script src="vendor/three.min.js"></script>
+<script src="src/data.js"></script>
+<script src="src/path.js"></script>
+<script src="src/scene.js"></script>
+<script>
+function L(m){document.getElementById('log').textContent += m + '\n';}
+window.onerror=function(m,s,l,c,e){L('ERR '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):m));};
+try{
+  L('data ok floors=' + Object.keys(Data.FLOOR_MAP).length);
+  Scene3D.init(document.getElementById('scene'),{});
+  L('init done');
+  Scene3D.buildAllPins();
+  L('pins done');
+  Scene3D.focusFloor('MZ1',{camera:false});
+  Scene3D.showCampus();
+  L('campus done');
+}catch(e){ L('INITERR '+e.message+' :: '+(e.stack||'').split('\n')[1]); }
+</script></body></html>

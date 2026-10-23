@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>本地软键盘输入法 · 纯前端离线（31.7 万词库 / 8 模式 / 手写两阶段识别）</title>
+  <link rel="stylesheet" href="soft-keyboard/soft-keyboard.css">
+  <style>
+    :root {
+      --page-bg: #f7f9fc;
+      --card-bg: #ffffff;
+      --line: #e4eaf2;
+      --text: #1f2a37;
+      --muted: #7c8a9c;
+      --accent: #2f6fed;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px 20px 40px;
+      background: var(--page-bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+        'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      line-height: 1.6;
+    }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: 0.5px; }
+    .sub { margin: 0 0 22px; color: var(--muted); font-size: 13px; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 14px;
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--text);
+      background: #fcfdff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.14);
+    }
+    textarea { min-height: 96px; resize: vertical; line-height: 1.7; }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    button.plain {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 9px;
+      padding: 7px 13px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    button.plain:hover { border-color: var(--accent); color: var(--accent); }
+    ul.tips { margin: 0; padding-left: 0; list-style: none; font-size: 13px; color: #43526b; }
+    ul.tips li { margin-bottom: 9px; padding-left: 2px; }
+    code {
+      background: #eef3fb;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 12px;
+    }
+    .badge {
+      display: inline-block;
+      background: #eef3fb;
+      color: var(--accent);
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-size: 12px;
+      margin-right: 6px;
+      font-weight: 600;
+    }
+    .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .stat {
+      flex: 1 1 130px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #fbfcff;
+    }
+    .stat b { display: block; font-size: 17px; color: var(--text); font-weight: 600; }
+    .kbd {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      padding: 0 5px;
+      font-size: 11px;
+      background: #fafbfd;
+      color: #43526b;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>本地软键盘输入法</h1>
+    <p class="sub">纯前端 · 完全离线 · 31.7 万词库（分片后台并入）· 8 种输入模式 · 手写两阶段识别</p>
+
+    <div class="card">
+      <h2>输入区（点击任意输入框弹出键盘）</h2>
+      <div class="field">
+        <label>单行输入框</label>
+        <input id="demo-input" type="text"
+          placeholder="试试：全拼/简拼、手写、表情、短语、长按字母出数字、← → 挪光标">
+      </div>
+      <div class="field">
+        <label>多行输入框（更适合试短语与剪贴板）</label>
+        <textarea id="demo-textarea"
+          placeholder="长按退格连续删除；工具页可复制/粘贴/全选；短语页一键上屏常用语"></textarea>
+      </div>
+      <div class="actions">
+        <button class="plain" id="btn-open">打开键盘</button>
+        <button class="plain" id="btn-hand">直接手写</button>
+        <button class="plain" id="btn-emoji">表情面板</button>
+        <button class="plain" id="btn-tools">工具/设置</button>
+        <button class="plain" id="btn-clear-input">清空当前输入框</button>
+        <button class="plain" id="btn-reset-pref">清空选词记忆</button>
+        <button class="plain" id="btn-add-word">加一个自造词</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>当前能力</h2>
+      <div class="stats" id="stat-row">
+        <div class="stat"><b id="stat-words">—</b>词条</div>
+        <div class="stat"><b id="stat-chars">—</b>单字读音条数</div>
+        <div class="stat"><b id="stat-shards">—</b>已并入扩展分片</div>
+        <div class="stat"><b id="stat-hand">91.4%</b>手写 top1（回归自测）</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>这一版做了什么</h2>
+      <ul class="tips">
+        <li><span class="badge">词库 6.5 万 → 31.7 万</span>
+          以 Unihan 通用规范汉字表 + jieba 语料词表重建词库：<b>8703 个单字（含多音共 11825 条读音）、317258 条词</b>，
+          字频按真实语料排序（了 / 是 / 在 / 和 / 有 / 他 / 不 / 我 / 的 / 人）。
+          首屏只同步加载核心分片，其余 5 个分片在空闲时用本地 <code>&lt;script&gt;</code> 逐个并入并增量建索引，
+          打字时随用随扩，不阻塞输入。</li>
+        <li><span class="badge">手写识别重写</span>
+          两阶段检索（分布特征粗筛 → 48×48 双向倒角 + 8×8×4 方向图细评），特征做「墨迹分布归一化」，
+          笔画粗细不再影响打分；模板覆盖楷体/黑体/仿宋三种字形，单字模板压缩成位图 + 量化特征。
+          同一套回归测试下 top1 从约 42% 提升到 <b>91.4%</b>、top5 <b>99.3%</b>，单字识别约 28ms，
+          字库从 4520 扩到 <b>6500</b> 字。</li>
+        <li><span class="badge">上下文重排</span>
+          手写候选会参考输入框里上一个字：例如上文是「重」，候选里「庆」会被提前，
+          因为词库里存在「重庆」这个词。</li>
+        <li><span class="badge">越用越准</span>
+          点选过的候选字会记录在本机（localStorage），同字下次自动前置；选词记忆、自造词、短语、设置同样本地持久化。</li>
+        <li><span class="badge">8 种模式</span>
+          拼音 / 英文（带单词补全）/ 数字 / 符号 / 表情（7 组约 170 个）/ 手写 / 短语（可增删）/ 工具。</li>
+        <li><span class="badge">工具面板</span>
+          复制、剪切、粘贴、全选、撤销、光标左右/行首行尾、长按字母出数字符号、
+          简拼与模糊音开关、候选每页 6/8/10、手写自动识别开关、深色主题、输入统计。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>快捷操作</h2>
+      <ul class="tips">
+        <li><span class="kbd">空格</span> 上屏首选词 · <span class="kbd">1</span>~<span class="kbd">9</span> 直接选第几个候选 · <span class="kbd">Esc</span> 收起键盘</li>
+        <li>长按字母键 0.4 秒 → 弹出该键对应的数字与常用符号</li>
+        <li>长按 <span class="kbd">⌫</span> 与 <span class="kbd">←</span> <span class="kbd">→</span> 连续触发</li>
+        <li>手写区：停笔 0.2 秒自动识别，右侧可翻页，点「更多 ▾」一屏看 32 个候选字</li>
+        <li>想验证识别准确率：<a href="tools/hw-test.html" target="_blank">打开手写回归测试页</a>（本机跑，离线）</li>
+      </ul>
+    </div>
+  </main>
+
+  <!-- 1) 核心词库（同步加载，扩展分片由键盘在空闲时自行并入） -->
+  <script src="soft-keyboard/data/dict.js"></script>
+  <!-- 2) 拼音解析与模糊纠错 -->
+  <script src="soft-keyboard/modules/pinyin-parser.js"></script>
+  <!-- 3) 词库检索、分片增量索引、用户词 -->
+  <script src="soft-keyboard/modules/dict-store.js"></script>
+  <!-- 4) 键盘渲染（8 模式） -->
+  <script src="soft-keyboard/modules/keyboard-render.js"></script>
+  <!-- 5) 候选词渲染（含「更多 ▾」大面板） -->
+  <script src="soft-keyboard/modules/candidates.js"></script>
+  <!-- 6) 手写面板（两阶段识别） -->
+  <script src="soft-keyboard/modules/handwriting.js"></script>
+  <!-- 7) 主组件 -->
+  <script src="soft-keyboard/soft-keyboard.js"></script>
+
+  <script>
+    (function () {
+      var kb = window.SK.SoftKeyboard.create({
+        targets: '#demo-input, #demo-textarea',
+        pageSize: 6,
+        handMaxChars: 6500,
+        shardBase: 'soft-keyboard/data/',
+      });
+
+      function openWith(fn) {
+        document.getElementById('demo-input').focus();
+        kb.show();
+        if (fn) fn();
+      }
+
+      document.getElementById('btn-open').addEventListener('click', function () { openWith(); });
+      document.getElementById('btn-hand').addEventListener('click', function () {
+        openWith(function () { kb.setMode('hand'); });
+      });
+      document.getElementById('btn-emoji').addEventListener('click', function () {
+        openWith(function () { kb.setMode('emoji'); });
+      });
+      document.getElementById('btn-tools').addEventListener('click', function () {
+        openWith(function () { kb.setMode('tools'); });
+      });
+      document.getElementById('btn-clear-input').addEventListener('click', function () {
+        kb.clearInput();
+      });
+      document.getElementById('btn-reset-pref').addEventListener('click', function () {
+        window.SK.DictStore.clearPreference();
+        window.SK.Handwriting.clearLearn();
+        this.textContent = '已清空 ✓';
+      });
+      document.getElementById('btn-add-word').addEventListener('click', function () {
+        var w = prompt('自造词（2~24 个汉字）：', '');
+        if (!w) return;
+        var p = prompt('拼音（可留空自动拼合）：', '');
+        var e = window.SK.DictStore.addUserWord(w.trim(), p || '');
+        alert(e ? '已加入：' + e.w + '（' + e.p + '）' : '添加失败，请检查拼音');
+      });
+
+      function refreshStats() {
+        var st = kb.stats ? kb.stats() : {};
+        document.getElementById('stat-words').textContent = (st.wordCount || 0).toLocaleString();
+        document.getElementById('stat-chars').textContent = (st.singleCount || 0).toLocaleString();
+        document.getElementById('stat-shards').textContent = (st.shards || 0) + '/5';
+      }
+      refreshStats();
+      setInterval(refreshStats, 1500);
+    })();
+  </script>
+</body>
+</html>

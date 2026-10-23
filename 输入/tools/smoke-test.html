@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>键盘功能冒烟测试</title>
+<style>body{font:13px/1.6 Consolas,monospace;padding:12px}#out{white-space:pre-wrap;background:#f6f8fa;padding:10px;border-radius:8px}</style>
+</head>
+<body>
+<input id="t1" type="text">
+<textarea id="t2"></textarea>
+<pre id="out">running...</pre>
+<script>
+  window.__errors = [];
+  window.addEventListener('error', function (e) { window.__errors.push(String(e.message)); });
+</script>
+<script src="../soft-keyboard/data/dict.js"></script>
+<script src="../soft-keyboard/modules/pinyin-parser.js"></script>
+<script src="../soft-keyboard/modules/dict-store.js"></script>
+<script src="../soft-keyboard/modules/keyboard-render.js"></script>
+<script src="../soft-keyboard/modules/candidates.js"></script>
+<script src="../soft-keyboard/modules/handwriting.js"></script>
+<script src="../soft-keyboard/soft-keyboard.js"></script>
+<script>
+(function () {
+  var logs = [];
+  function log(s) { logs.push(s); document.getElementById('out').textContent = logs.join('\n'); }
+  function check(name, cond, extra) {
+    log((cond ? 'PASS  ' : 'FAIL  ') + name + (extra ? '  → ' + extra : ''));
+  }
+  function clickKey(label) {
+    var keys = document.querySelectorAll('.sk-panel .sk-key');
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].textContent === label && keys[i].getClientRects().length) {
+        keys[i].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+        keys[i].dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0 }));
+        return true;
+      }
+    }
+    return false;
+  }
+  function clickTab(label) {
+    var tabs = document.querySelectorAll('.sk-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].textContent === label) { tabs[i].click(); return true; }
+    }
+    return false;
+  }
+  function candWords() {
+    return Array.prototype.map.call(document.querySelectorAll('.sk-cand-item .sk-cand-word'),
+      function (n) { return n.textContent; });
+  }
+
+  try {
+    var t1 = document.getElementById('t1');
+    var kb = window.SK.SoftKeyboard.create({
+      targets: '#t1, #t2',
+      pageSize: 6,
+      shardBase: '../soft-keyboard/data/',
+    });
+    kb.show();
+    t1.focus();
+    log('键盘实例创建成功，版本 ' + window.SK.SoftKeyboard.version + ' / 手写 ' + window.SK.Handwriting.version);
+    var allKeys = document.querySelectorAll('.sk-panel .sk-key');
+    var visibleKeys = Array.prototype.filter.call(allKeys, function (k) { return k.getClientRects().length; });
+    log('按键总数 ' + allKeys.length + '，可见 ' + visibleKeys.length + '，前几个：' +
+        Array.prototype.slice.call(visibleKeys, 0, 12).map(function (k) { return k.textContent; }).join(','));
+    log('当前模式 ' + document.querySelector('.sk-panel').dataset.mode);
+    check('键盘可见', kb.isVisible());
+
+    // 1) 拼音
+    'nihao'.split('').forEach(function (c) { clickKey(c); });
+    var w1 = candWords();
+    check('拼音 nihao 有候选', w1.length > 0, w1.slice(0, 4).join(' / '));
+    check('首选为「你好」', w1[0] === '你好', w1[0]);
+    clickKey('空格');
+    check('空格上屏首选词', t1.value.indexOf('你好') === 0, JSON.stringify(t1.value));
+
+    // 2) 简拼
+    kb.clearBuffer();
+    t1.value = '';
+    'wmd'.split('').forEach(function (c) { clickKey(c); });
+    var w2 = candWords();
+    check('简拼 wmd 命中「我们的」', w2.slice(0, 3).indexOf('我们的') >= 0 || w2[0] === '我们的', w2.slice(0, 4).join(' / '));
+
+    // 3) 长词 / 低频词（验证扩展分片）
+    kb.clearBuffer();
+    'qinghuaci'.split('').forEach(function (c) { clickKey(c); });
+    var w3 = candWords();
+    check('拼音 qinghuaci 有候选', w3.length > 0, w3.slice(0, 5).join(' / '));
+
+    // 4) 英文模式
+    kb.clearBuffer();
+    t1.value = '';
+    clickTab('英文');
+    'hel'.split('').forEach(function (c) { clickKey(c); });
+    var w4 = candWords();
+    check('英文 hel 有补全', w4.length > 0, w4.slice(0, 5).join(' / '));
+    var helloBtn = null;
+    Array.prototype.forEach.call(document.querySelectorAll('.sk-cand-item'), function (b) {
+      if (b.textContent.indexOf('hello') >= 0) helloBtn = b;
+    });
+    if (helloBtn) {
+      helloBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+      check('英文补全替换前缀', t1.value.trim() === 'hello', JSON.stringify(t1.value));
+    } else {
+      check('英文补全替换前缀', false, '未渲染 hello 候选');
+    }
+
+    // 5) 表情
+    clickTab('表情');
+    var emojiBtn = document.querySelector('.sk-emoji-item');
+    var before = t1.value;
+    emojiBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+    check('表情上屏', t1.value.length > before.length, t1.value.slice(-3));
+
+    // 6) 短语
+    clickTab('短语');
+    var phraseBtn = document.querySelector('.sk-phrase-item');
+    var before2 = t1.value;
+    phraseBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+    check('短语上屏', t1.value.length > before2.length, JSON.stringify(t1.value.slice(-8)));
+
+    // 7) 工具页
+    clickTab('工具');
+    check('工具页渲染', !!document.querySelector('.sk-tool-btn'));
+    var statText = document.querySelector('.sk-stat-box').textContent;
+    check('统计信息已填充', /词库/.test(statText), statText.split('\n')[0]);
+
+    // 8) 深色主题
+    var darkRow = Array.prototype.filter.call(document.querySelectorAll('.sk-setting-row'),
+      function (r) { return r.dataset.key === 'dark'; })[0];
+    darkRow.click();
+    check('深色主题切换', document.querySelector('.sk-panel').classList.contains('sk-theme-dark'));
+    darkRow.click();
+
+    // 9) 候选每页数量
+    var seg = document.querySelectorAll('.sk-seg-btn');
+    seg[2].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+    check('候选每页改为 10', kb.getSettings().pageSize === 10, String(kb.getSettings().pageSize));
+
+    // 10) 自造词
+    var entry = kb.addWord('测试自造词', 'ce shi zi zao ci');
+    check('自造词入库', !!entry, entry ? entry.w + ' / ' + entry.p : '');
+    var q = window.SK.DictStore.query('ceshizizaoci', { limit: 20 });
+    check('自造词可被检索到', q.candidates.some(function (c) { return c.word === '测试自造词'; }),
+      q.candidates.slice(0, 3).map(function (c) { return c.word; }).join(' / '));
+
+    // 11) 手写
+    clickTab('手写');
+    var handCount = window.SK.Handwriting._buildTemplates(
+      window.SK.DictStore.getCommonChars(60).map(function (e) { return e.w; })
+    );
+    check('手写模板可构建', handCount > 0, handCount + ' 字');
+
+    // 12) 分片
+    setTimeout(function () {
+      var st = kb.stats();
+      check('扩展分片已并入', st.shards > 0, st.shards + ' 个分片 / 共 ' + st.wordCount + ' 词');
+      var q2 = window.SK.DictStore.query('shujiegou', { limit: 10 });
+      check('扩展词条可检索', q2.candidates.length > 0,
+        q2.candidates.slice(0, 3).map(function (c) { return c.word; }).join(' / '));
+
+      // 13) 长按扩展键 + 光标键
+      clickTab('拼音');
+      var qKey = null;
+      Array.prototype.forEach.call(document.querySelectorAll('.sk-page[data-mode="letter"] .sk-key'), function (k) {
+        if (k.textContent === 'q') qKey = k;
+      });
+      t1.value = '';
+      qKey.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+      setTimeout(function () {
+        var pop = document.querySelector('.sk-longpress-pop');
+        check('长按字母弹出扩展键', !!pop, pop ? pop.textContent : '未弹出');
+        if (pop) {
+          var item = pop.querySelector('.sk-longpress-item');
+          item.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+        }
+        qKey.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0 }));
+        check('长按选项直接上屏', t1.value.indexOf('1') >= 0, JSON.stringify(t1.value));
+
+        clickTab('拼音');
+        t1.value = 'abcdef';
+        t1.focus();
+        t1.selectionStart = t1.selectionEnd = 3;
+        clickKey('←');
+        check('光标左移', t1.selectionStart === 2, 'pos=' + t1.selectionStart);
+        clickKey('→');
+        check('光标右移', t1.selectionStart === 3, 'pos=' + t1.selectionStart);
+
+        log('\n错误数：' + window.__errors.length + (window.__errors.length ? '\n' + window.__errors.join('\n') : ''));
+        document.title = 'DONE';
+      }, 520);
+    }, 9000);
+  } catch (e) {
+    log('EXCEPTION: ' + (e && e.stack || e));
+    document.title = 'ERROR';
+  }
+})();
+</script>
+</body>
+</html>

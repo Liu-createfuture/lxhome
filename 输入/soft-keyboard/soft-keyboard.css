@@ -1,0 +1,1321 @@
+/**
+ * soft-keyboard.css —— 软键盘样式（全模式等高固定 + 多行展开候选面板 + 一键清空升级版）
+ * ------------------------------------------------------------------
+ * 所有视觉都通过 .sk-panel 上的 CSS 变量控制，改主题只需覆盖变量，无需动结构。
+ * 字母 / 数字 / 符号 / 手写 四种键盘模式以及「更多 ▾」多行大面板均严格保持固定总高度。
+ */
+
+.sk-panel {
+  /* ------- 主题变量（可整体覆盖） ------- */
+  --sk-bg: #f4f6fa;
+  --sk-panel-bg: #ffffff;
+  --sk-key-bg: #ffffff;
+  --sk-key-bg-hover: #eef3fb;
+  --sk-key-bg-active: #dbe8fa;
+  --sk-fn-bg: #e7ecf4;
+  --sk-fn-text: #46566a;
+  --sk-text: #1f2a37;
+  --sk-muted: #93a1b1;
+  --sk-border: #e2e8f0;
+  --sk-accent: #2f6fed;
+  --sk-accent-soft: #e8f0ff;
+  --sk-danger: #dc2626;
+  --sk-danger-soft: #fef2f2;
+  --sk-danger-border: #fecaca;
+  --sk-shadow: 0 -6px 24px rgba(16, 32, 64, 0.12);
+  --sk-radius: 10px;
+  --sk-gap: 6px;
+  --sk-key-height: 46px;
+  --sk-body-height: calc(var(--sk-key-height) * 4 + var(--sk-gap) * 3);
+  --sk-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 9999;
+  width: 100%;
+  max-width: 780px;
+  box-sizing: border-box;
+  transform: translate(-50%, 110%);
+  transition: transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+  background: var(--sk-panel-bg);
+  border: 1px solid var(--sk-border);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: var(--sk-shadow);
+  font-family: var(--sk-font);
+  color: var(--sk-text);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  padding: 8px 10px 10px;
+}
+
+.sk-panel.is-open {
+  transform: translate(-50%, 0);
+}
+
+/* ---------------- 顶部（固定 36px） ---------------- */
+
+.sk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  margin-bottom: 6px;
+  padding-bottom: 0;
+  box-sizing: border-box;
+}
+
+.sk-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--sk-bg);
+  border-radius: 10px;
+  padding: 3px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.sk-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sk-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--sk-fn-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sk-tab:hover {
+  background: var(--sk-key-bg-hover);
+}
+
+.sk-tab.is-active {
+  background: var(--sk-panel-bg);
+  color: var(--sk-accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(16, 32, 64, 0.12);
+}
+
+.sk-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sk-clear-btn {
+  appearance: none;
+  border: 1px solid var(--sk-danger-border);
+  background: var(--sk-danger-soft);
+  color: var(--sk-danger);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sk-clear-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.sk-collapse {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--sk-muted);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sk-collapse:hover {
+  background: var(--sk-bg);
+  color: var(--sk-text);
+}
+
+/* ---------------- 拼音缓冲 + 候选词（固定 68px，永不塌陷） ---------------- */
+
+.sk-preview {
+  height: 68px;
+  min-height: 68px;
+  max-height: 68px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.sk-buffer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  padding: 0 4px 4px;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--sk-border);
+  margin-bottom: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.sk-buffer-text {
+  color: var(--sk-text);
+  font-weight: 500;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sk-buffer-text.is-placeholder {
+  color: var(--sk-muted);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.sk-buffer-tail {
+  color: var(--sk-accent);
+  border-bottom: 2px solid var(--sk-accent);
+}
+
+.sk-buffer-hint {
+  flex: 0 0 auto;
+  color: var(--sk-accent);
+  font-size: 12px;
+  background: var(--sk-accent-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.sk-buffer-hint:empty {
+  display: none;
+}
+
+.sk-buffer-clear {
+  flex: 0 0 auto;
+  appearance: none;
+  border: 1px solid var(--sk-border);
+  background: var(--sk-bg);
+  color: var(--sk-fn-text);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.sk-buffer-clear:hover {
+  background: var(--sk-danger-soft);
+  color: var(--sk-danger);
+  border-color: var(--sk-danger-border);
+}
+
+.sk-candidates {
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  box-sizing: border-box;
+}
+
+.sk-cand-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  box-sizing: border-box;
+}
+
+.sk-cand-list {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  height: 36px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sk-cand-placeholder {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--sk-border);
+  border-radius: 8px;
+  background: #fafbfd;
+  color: var(--sk-muted);
+  font-size: 12px;
+  padding: 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.sk-cand-item {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 36px;
+  padding: 0 6px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-key-bg);
+  color: var(--sk-text);
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.sk-cand-item:hover {
+  background: var(--sk-key-bg-hover);
+  border-color: var(--sk-accent);
+}
+
+.sk-cand-item.is-first {
+  background: var(--sk-accent-soft);
+  border-color: var(--sk-accent);
+  font-weight: 600;
+}
+
+.sk-cand-word {
+  pointer-events: none;
+}
+
+.sk-cand-badge {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-size: 9px;
+  line-height: 1;
+  color: #fff;
+  background: var(--sk-accent);
+  border-radius: 4px;
+  padding: 2px 3px;
+  pointer-events: none;
+}
+
+.sk-cand-nav {
+  flex: 0 0 28px;
+  height: 36px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-key-bg);
+  color: var(--sk-fn-text);
+  font-size: 16px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.sk-cand-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sk-cand-info {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--sk-muted);
+  min-width: 34px;
+  text-align: center;
+}
+
+.sk-cand-more {
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--sk-accent);
+  border-radius: 8px;
+  background: var(--sk-accent-soft);
+  color: var(--sk-accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  box-sizing: border-box;
+}
+
+.sk-cand-more:hover:not(:disabled) {
+  background: var(--sk-accent);
+  color: #fff;
+}
+
+.sk-cand-more.is-active {
+  background: var(--sk-accent);
+  color: #fff;
+}
+
+.sk-cand-more:disabled {
+  border-color: var(--sk-border);
+  background: var(--sk-bg);
+  color: var(--sk-muted);
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------------- 按键区 & 多行展开更多面板（统一固定高度 --sk-body-height） ---------------- */
+
+.sk-body {
+  position: relative;
+  height: var(--sk-body-height);
+  min-height: var(--sk-body-height);
+  max-height: var(--sk-body-height);
+  padding-top: 0;
+  box-sizing: border-box;
+}
+
+/* 「更多 ▾」展开后的多行网格候选大面板（覆盖在按键区上，保持总高度完全不变） */
+.sk-more-panel {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: var(--sk-panel-bg);
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+.sk-more-panel.is-open {
+  display: flex;
+}
+
+.sk-more-grid {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: minmax(36px, 1fr);
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 2px;
+  box-sizing: border-box;
+}
+
+/* 单字主导模式（如手写识别或单字拼音）：一页 8 列 × 4 行 = 32 个文字 */
+.sk-more-grid.is-single-char {
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.sk-more-item {
+  position: relative;
+  height: 100%;
+  min-height: 36px;
+  padding: 0 6px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-key-bg);
+  color: var(--sk-text);
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.sk-more-grid.is-single-char .sk-more-item {
+  font-size: 18px;
+}
+
+.sk-more-item.is-wide {
+  grid-column: span 2;
+}
+
+.sk-more-item:hover {
+  background: var(--sk-key-bg-hover);
+  border-color: var(--sk-accent);
+}
+
+.sk-more-item.is-first {
+  background: var(--sk-accent-soft);
+  border-color: var(--sk-accent);
+  font-weight: 600;
+}
+
+.sk-more-bar {
+  flex: 0 0 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+.sk-more-btn {
+  flex: 0 0 auto;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-fn-bg);
+  color: var(--sk-fn-text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.sk-more-btn:hover:not(:disabled) {
+  background: var(--sk-key-bg-hover);
+  border-color: var(--sk-accent);
+}
+
+.sk-more-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.sk-more-btn-danger {
+  background: var(--sk-danger-soft);
+  border-color: var(--sk-danger-border);
+  color: var(--sk-danger);
+}
+
+.sk-more-btn-primary {
+  background: var(--sk-accent);
+  border-color: var(--sk-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sk-more-info {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 12px;
+  color: var(--sk-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sk-page {
+  display: none;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.sk-page.is-active {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: var(--sk-gap);
+}
+
+.sk-row {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  gap: var(--sk-gap);
+  margin-bottom: 0;
+}
+
+.sk-key {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  border: 1px solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  background: var(--sk-key-bg);
+  color: var(--sk-text);
+  font-family: inherit;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+  box-shadow: 0 1px 1px rgba(16, 32, 64, 0.06);
+  transition: background 0.12s, transform 0.06s, color 0.12s;
+  box-sizing: border-box;
+  padding: 0 2px;
+}
+
+.sk-page[data-mode="symbol"] .sk-key {
+  font-size: 15px;
+}
+
+.sk-key:hover {
+  background: var(--sk-key-bg-hover);
+}
+
+.sk-key:active {
+  background: var(--sk-key-bg-active);
+  transform: scale(0.96);
+}
+
+.sk-key-fn {
+  background: var(--sk-fn-bg);
+  color: var(--sk-fn-text);
+  font-size: 14px;
+}
+
+.sk-key-fn.is-active {
+  background: var(--sk-accent);
+  color: #fff;
+}
+
+.sk-key-danger {
+  background: var(--sk-danger-soft);
+  border-color: var(--sk-danger-border);
+  color: var(--sk-danger);
+  font-weight: 500;
+}
+
+.sk-key-danger:hover {
+  background: #fee2e2;
+}
+
+.sk-key-wide {
+  flex: 1.5 1 0;
+}
+
+.sk-key-space {
+  flex: 3.4 1 0;
+  font-size: 13px;
+  color: var(--sk-fn-text);
+}
+
+.sk-key-enter {
+  flex: 1.5 1 0;
+  background: var(--sk-accent);
+  border-color: var(--sk-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sk-key-enter:hover {
+  background: #2560d8;
+}
+
+/* ---------------- 手写面板（与按键区完全等高，含内建翻页与更多按钮） ---------------- */
+
+.sk-hand-host {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.sk-hand {
+  --sk-pad: var(--sk-body-height);
+  display: flex;
+  gap: 10px;
+  height: var(--sk-body-height);
+  min-height: var(--sk-body-height);
+  max-height: var(--sk-body-height);
+  box-sizing: border-box;
+}
+
+.sk-hand-pad {
+  position: relative;
+  flex: 0 0 var(--sk-pad);
+  width: var(--sk-pad);
+  height: var(--sk-pad);
+  border: 1px dashed #c3d3e6;
+  border-radius: 12px;
+  background: #fbfdff;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.sk-hand-canvas {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sk-hand-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b9c6d6;
+  font-size: 14px;
+  padding: 0 12px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sk-hand-status {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  font-size: 11px;
+  color: var(--sk-accent);
+  pointer-events: none;
+}
+
+.sk-hand-side {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+.sk-hand-tools {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 32px;
+}
+
+.sk-hand-btn {
+  flex: 1;
+  height: 32px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-fn-bg);
+  color: var(--sk-fn-text);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.sk-hand-btn:hover:not(:disabled) {
+  background: var(--sk-key-bg-hover);
+}
+
+.sk-hand-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sk-hand-btn-danger {
+  background: var(--sk-danger-soft);
+  border-color: var(--sk-danger-border);
+  color: var(--sk-danger);
+}
+
+.sk-hand-btn-primary {
+  background: var(--sk-accent);
+  border-color: var(--sk-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sk-hand-result {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 6px;
+  overflow: hidden;
+}
+
+.sk-hand-cand {
+  height: 100%;
+  min-height: 34px;
+  border: 1px solid var(--sk-border);
+  border-radius: 9px;
+  background: var(--sk-key-bg);
+  color: var(--sk-text);
+  font-family: inherit;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.sk-hand-cand.is-first {
+  background: var(--sk-accent-soft);
+  border-color: var(--sk-accent);
+  font-weight: 600;
+}
+
+.sk-hand-cand:hover {
+  background: var(--sk-accent-soft);
+  border-color: var(--sk-accent);
+}
+
+.sk-hand-empty {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--sk-border);
+  border-radius: 9px;
+  background: #fafbfd;
+  color: var(--sk-muted);
+  font-size: 12px;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.sk-hand-pager {
+  flex: 0 0 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+.sk-hand-page-btn {
+  flex: 0 0 68px;
+  height: 28px;
+  border: 1px solid var(--sk-border);
+  border-radius: 7px;
+  background: var(--sk-key-bg);
+  color: var(--sk-fn-text);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.sk-hand-page-btn:hover:not(:disabled) {
+  background: var(--sk-key-bg-hover);
+  border-color: var(--sk-accent);
+}
+
+.sk-hand-page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sk-hand-page-info {
+  flex: 1 1 auto;
+  font-size: 11px;
+  color: var(--sk-muted);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------- 窄屏适配 ---------------- */
+
+@media (max-width: 640px) {
+  .sk-panel {
+    --sk-key-height: 42px;
+    --sk-gap: 5px;
+    --sk-radius: 9px;
+    padding: 6px 6px 8px;
+  }
+
+  .sk-key {
+    font-size: 15px;
+  }
+
+  .sk-page[data-mode="symbol"] .sk-key {
+    font-size: 13px;
+  }
+
+  .sk-tab {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .sk-hand-cand {
+    font-size: 18px;
+  }
+
+  .sk-more-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .sk-more-grid.is-single-char {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* ================================================================
+ * 以下为 8 模式扩展样式：英文 / 表情 / 短语 / 工具 / 长按弹层 / 深色主题
+ * ================================================================ */
+
+/* ---------------- 窄键（方向键） ---------------- */
+
+.sk-key-narrow {
+  flex: 0.72 1 0;
+  font-size: 16px;
+}
+
+/* ---------------- 深色主题 ---------------- */
+
+.sk-panel.sk-theme-dark {
+  --sk-bg: #1b2130;
+  --sk-panel-bg: #232a3a;
+  --sk-key-bg: #2b3446;
+  --sk-key-bg-hover: #35405a;
+  --sk-key-bg-active: #3f4b67;
+  --sk-fn-bg: #333d52;
+  --sk-fn-text: #c6d2e4;
+  --sk-text: #eef3fb;
+  --sk-muted: #8b9ab1;
+  --sk-border: #3a4459;
+  --sk-accent: #5b93ff;
+  --sk-accent-soft: #2a3b5c;
+  --sk-danger: #ff6b6b;
+  --sk-danger-soft: #3a2a2f;
+  --sk-danger-border: #5c3a3f;
+  --sk-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45);
+}
+
+.sk-theme-dark .sk-cand-placeholder,
+.sk-theme-dark .sk-hand-empty,
+.sk-theme-dark .sk-panel-empty {
+  background: #202634;
+  color: var(--sk-muted);
+}
+
+.sk-theme-dark .sk-hand-pad {
+  background: #1d2331;
+  border-color: #3d4a63;
+}
+
+.sk-theme-dark .sk-hand-canvas {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+
+.sk-theme-dark .sk-key {
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------------- 面板页（表情 / 短语 / 工具） ---------------- */
+
+/* 面板模式（表情/短语/工具）内容更多，临时加高键盘并隐藏候选栏，退出即复原 */
+.sk-panel.is-panel-mode {
+  --sk-body-height: 342px;
+}
+
+.sk-panel.is-panel-mode .sk-preview {
+  display: none;
+}
+
+.sk-panel.is-panel-mode .sk-header {
+  margin-bottom: 8px;
+}
+
+.sk-page-panel.is-active {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.sk-chip-row {
+  flex: 0 0 30px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  box-sizing: border-box;
+}
+
+.sk-chip-row::-webkit-scrollbar { display: none; }
+
+.sk-chip {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--sk-border);
+  border-radius: 14px;
+  background: var(--sk-key-bg);
+  color: var(--sk-fn-text);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sk-chip.is-active {
+  background: var(--sk-accent);
+  border-color: var(--sk-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sk-chip-primary {
+  background: var(--sk-accent-soft);
+  border-color: var(--sk-accent);
+  color: var(--sk-accent);
+  font-weight: 600;
+}
+
+/* ---------------- 表情面板 ---------------- */
+
+.sk-emoji-grid {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: minmax(34px, 1fr);
+  gap: 5px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.sk-emoji-item {
+  height: 100%;
+  min-height: 32px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-key-bg);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, transform 0.06s;
+}
+
+.sk-emoji-item:hover {
+  background: var(--sk-accent-soft);
+  border-color: var(--sk-accent);
+}
+
+.sk-emoji-item:active {
+  transform: scale(0.9);
+}
+
+/* ---------------- 短语面板 ---------------- */
+
+.sk-phrase-list {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 2px;
+}
+
+.sk-phrase-row {
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.sk-phrase-item {
+  flex: 1 1 auto;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-key-bg);
+  color: var(--sk-text);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sk-phrase-item:hover {
+  background: var(--sk-accent-soft);
+  border-color: var(--sk-accent);
+}
+
+.sk-phrase-del {
+  flex: 0 0 34px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-fn-bg);
+  color: var(--sk-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sk-phrase-del:hover {
+  background: var(--sk-danger-soft);
+  border-color: var(--sk-danger-border);
+  color: var(--sk-danger);
+}
+
+/* ---------------- 工具面板 ---------------- */
+
+.sk-tools-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.sk-panel-title {
+  font-size: 11px;
+  color: var(--sk-muted);
+  letter-spacing: 0.5px;
+  margin: 4px 0 5px;
+  font-weight: 600;
+}
+
+.sk-panel-title:first-child { margin-top: 0; }
+
+.sk-tool-row {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.sk-tool-btn {
+  flex: 1 1 0;
+  min-width: 68px;
+  height: 32px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-key-bg);
+  color: var(--sk-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0 8px;
+}
+
+.sk-tool-btn:hover {
+  background: var(--sk-accent-soft);
+  border-color: var(--sk-accent);
+  color: var(--sk-accent);
+}
+
+.sk-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sk-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-key-bg);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.sk-setting-label {
+  font-size: 13px;
+  color: var(--sk-text);
+}
+
+.sk-switch {
+  position: relative;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--sk-fn-bg);
+  border: 1px solid var(--sk-border);
+  transition: background 0.18s;
+  box-sizing: border-box;
+}
+
+.sk-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s;
+}
+
+.sk-switch.is-on {
+  background: var(--sk-accent);
+  border-color: var(--sk-accent);
+}
+
+.sk-switch.is-on .sk-switch-knob {
+  transform: translateX(16px);
+}
+
+.sk-seg {
+  display: flex;
+  gap: 3px;
+}
+
+.sk-seg-btn {
+  width: 34px;
+  height: 24px;
+  border: 1px solid var(--sk-border);
+  border-radius: 6px;
+  background: var(--sk-fn-bg);
+  color: var(--sk-fn-text);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sk-seg-btn.is-active {
+  background: var(--sk-accent);
+  border-color: var(--sk-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sk-stat-box {
+  margin: 8px 0 4px;
+  padding: 8px 10px;
+  border: 1px dashed var(--sk-border);
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--sk-muted);
+  white-space: pre-line;
+}
+
+.sk-panel-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--sk-muted);
+  font-size: 12px;
+  border: 1px dashed var(--sk-border);
+  border-radius: 8px;
+}
+
+/* ---------------- 长按扩展键弹层 ---------------- */
+
+.sk-longpress-pop {
+  position: absolute;
+  z-index: 40;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 10px;
+  background: var(--sk-panel-bg);
+  border: 1px solid var(--sk-border);
+  box-shadow: 0 8px 24px rgba(16, 32, 64, 0.22);
+}
+
+.sk-longpress-item {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--sk-border);
+  border-radius: 8px;
+  background: var(--sk-key-bg);
+  color: var(--sk-text);
+  font-family: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.sk-longpress-item:hover {
+  background: var(--sk-accent);
+  border-color: var(--sk-accent);
+  color: #fff;
+}
+
+/* ---------------- 轻提示 ---------------- */
+
+.sk-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--sk-body-height) + 84px);
+  transform: translate(-50%, 8px);
+  padding: 7px 16px;
+  border-radius: 18px;
+  background: rgba(24, 32, 48, 0.9);
+  color: #fff;
+  font-size: 12.5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s, transform 0.18s;
+  white-space: nowrap;
+  max-width: 80%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 50;
+}
+
+.sk-toast.is-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------------- 手写区提示文字 ---------------- */
+
+.sk-hand-hint {
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  font-size: 11px;
+  color: #c2cfdf;
+  pointer-events: none;
+}
+
+/* ---------------- 窄屏适配（面板） ---------------- */
+
+@media (max-width: 640px) {
+  .sk-tab {
+    padding: 6px 7px;
+    font-size: 12px;
+  }
+
+  .sk-emoji-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .sk-tool-btn {
+    min-width: 58px;
+    font-size: 12px;
+  }
+
+  .sk-setting-label {
+    font-size: 12px;
+  }
+}
