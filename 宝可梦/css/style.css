@@ -1538,6 +1538,14 @@ body::after {
 }
 .round-btn.a b { font-size: 26px; }
 .round-btn:active { transform: translateY(3px) scale(.97); box-shadow: 0 2px 0 rgba(0,0,0,.34), inset 0 0 0 2px rgba(0,0,0,.2); }
+.round-btn.ready {
+  border-color: #ffe1a0;
+  box-shadow: 0 5px 0 rgba(0,0,0,.34), 0 0 0 3px rgba(233,186,95,.6), inset 0 0 0 2px rgba(0,0,0,.2);
+  animation: btnReady 1.2s steps(3) infinite;
+}
+@keyframes btnReady {
+  50% { box-shadow: 0 5px 0 rgba(0,0,0,.34), 0 0 0 7px rgba(233,186,95,.16), inset 0 0 0 2px rgba(0,0,0,.2); }
+}
 
 
 /* 触屏滚动：面板里可以正常上下拖 */
@@ -1613,6 +1621,13 @@ body.not-in-game #mb-map { display: none; }
 
 body.is-mobile.is-portrait #stage-wrap { align-items: flex-start; padding-top: max(6px, env(safe-area-inset-top)); }
 body.is-mobile.is-portrait #stage { box-shadow: 0 0 0 3px #1b2d24, 0 0 0 5px #405a48, 0 12px 30px rgba(0,0,0,.7); }
+
+/* 横屏时把战斗面板挪开右下角的 A / B，避免挡住按钮 */
+@media (pointer: coarse) and (orientation: landscape) {
+  .battle-actions { right: 84px; }
+  .battle-message { width: 500px; }
+  .battle-submenu { right: 84px; }
+}
 
 @media (pointer: coarse) {
   .hud-controls-hint { display: none; }

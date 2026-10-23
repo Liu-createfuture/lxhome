@@ -65,6 +65,7 @@ window.PKM = window.PKM || {};
         prompt: $('interact-prompt'), promptText: $('interact-text'),
         toast: $('toast-layer'),
         mbqTitle: $('mbq-title'), mbqHint: $('mbq-hint'),
+        btnA: $('btn-a'), btnB: $('btn-b'), aLabel: $('btn-a-label'), bLabel: $('btn-b') ? $('btn-b').querySelector('small') : null,
         mapBanner: $('map-banner'), bannerName: $('map-banner-name'), bannerSub: $('map-banner-sub'),
         dialogueLayer: $('dialogue-layer'), dialogueSpeaker: $('dialogue-speaker'),
         dialogueText: $('dialogue-text'), dialogueNext: $('dialogue-next'), dialogueChoices: $('dialogue-choices'),
@@ -202,7 +203,7 @@ window.PKM = window.PKM || {};
           <b>Z / Enter / 空格</b><span>交谈、调查、确认</span>
           <b>X / Esc</b><span>打开旅人手记 / 返回</span>
           <b>M</b><span>打开旅途地图与快速移动</span>
-          <b>对话中</b><span>点击或按 Z 继续；再按一次可跳过打字</span>
+          <b>对话中</b><span>点击画面或按 A / Z 继续；打字时再按一次可跳过</span>
           <b>战斗中</b><span>点击按钮，或用方向键选择、Z 确认</span>
           <b>触屏</b><span>左下摇杆（按下并拖动可连续转向），右下 A / B</span>
           <b>手机竖屏</b><span>画面在上、按键在下，直接可以玩；点「全屏」并横过来视野更宽</span>
@@ -390,7 +391,10 @@ window.PKM = window.PKM || {};
       this.mapBanner(map.name, map.subtitle);
       if (fresh) {
         G.autoSave();
-        setTimeout(() => this.toast('按 X 打开旅人手记', null, ''), 1800);
+        setTimeout(() => {
+          const touch = PKM.MAIN_TOUCH || (window.PKM_MAIN && PKM_MAIN.touchCoarse);
+          this.toast(touch ? '点右下 B 打开旅人手记' : '按 X 打开旅人手记', null, '');
+        }, 1800);
         setTimeout(() => this.toast('去和镇上的苔爷爷聊聊吧', 'quest', 'quest'), 3100);
       }
     },
@@ -433,9 +437,12 @@ window.PKM = window.PKM || {};
       if (!PKM.BATTLE.active && !this.dialogOpen && !this.modalOpen && !this.menuOpen &&
         !this.shopOpen && !this.mapOpen && !this.transitioning && !this.endingActive) {
         const unlocked = G.checkAchievements();
-        for (const a of unlocked) {
+        if (unlocked.length === 1) {
           PKM.AUDIO.sfx('sparkle');
-          this.toast(`成就达成：${a.name}`, 'badge', 'quest');
+          this.toast(`成就达成：${unlocked[0].name}`, 'badge', 'quest');
+        } else if (unlocked.length > 1) {
+          PKM.AUDIO.sfx('sparkle');
+          this.toast(`达成 ${unlocked.length} 项成就：${unlocked.map(a => a.name).slice(0, 3).join('、')}`, 'badge', 'quest');
         }
       }
     },
@@ -550,6 +557,25 @@ window.PKM = window.PKM || {};
           this.el.prompt.classList.add('hidden');
         }
       }
+      this.syncTouchLabels();
+    },
+
+    /* 让 A / B 按钮的文字跟着当前状态走 */
+    syncTouchLabels() {
+      const label = this.el.aLabel;
+      if (!label) return;
+      let aText = '调查', ready = false, bText = '手记';
+      if (this.screen === 'title') { aText = G.hasSave() ? '继续' : '开始'; ready = true; }
+      else if (this.introActive) { aText = '继续'; ready = true; }
+      else if (this.endingActive) { aText = '继续'; ready = true; }
+      else if (PKM.BATTLE.active) { aText = '确定'; ready = !!PKM.BATTLE.menu; bText = '返回'; }
+      else if (this.dialogOpen) { aText = '继续'; ready = true; }
+      else if (this.modalOpen) { aText = '确定'; ready = true; }
+      else if (this.menuOpen || this.mapOpen || this.shopOpen) { aText = '操作'; bText = '关闭'; }
+      else if (this.promptText) { aText = this.promptText.length > 4 ? this.promptText.slice(0, 4) : this.promptText; ready = true; }
+      if (label.textContent !== aText) label.textContent = aText;
+      if (this.el.btnA) this.el.btnA.classList.toggle('ready', ready);
+      if (this.el.bLabel && this.el.bLabel.textContent !== bText) this.el.bLabel.textContent = bText;
     },
 
     /* ============================================================
@@ -1996,7 +2022,7 @@ window.PKM = window.PKM || {};
       const achCount = G.achievementCount();
       this.el.menuBody.innerHTML = `
         <div class="quest-list">${cards}
-          <div style="font-size:10px;color:#7d6b50;line-height:1.8;">追踪任务后，世界中的黄色虚线和顶部罗盘会指向下一个目标。按 M 可以随时打开旅途地图。成就进度在「成就」页查看（${achCount}/${D.ACHIEVEMENTS.length}）。</div>
+          <div style="font-size:10px;color:#7d6b50;line-height:1.8;">追踪任务后，世界中的黄色虚线和顶部罗盘会指向下一个目标。右上角「地图」可以随时打开旅途地图。成就进度在「成就」页查看（${achCount}/${D.ACHIEVEMENTS.length}）。</div>
         </div>`;
       this.el.menuBody.querySelectorAll('[data-track]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2388,6 +2414,11 @@ window.PKM = window.PKM || {};
     /* ============================================================
        输入与状态
        ============================================================ */
+    scrollPanel(el, dir) {
+      if (!el) return;
+      el.scrollTop += dir * Math.max(48, el.clientHeight * 0.35);
+    },
+
     isBlocking() {
       return this.dialogOpen || this.menuOpen || this.mapOpen || this.shopOpen || this.modalOpen || this.busy ||
         this.transitioning || this.battleStarting || this.screen !== 'game' || PKM.BATTLE.active;
@@ -2407,10 +2438,12 @@ window.PKM = window.PKM || {};
       }
       if (this.mapOpen) {
         if (key === 'cancel' || key === 'menu' || key === 'map') this.closeMap();
+        else if (key === 'up' || key === 'down') this.scrollPanel(document.querySelector('.map-side'), key === 'down' ? 1 : -1);
         return true;
       }
       if (this.shopOpen) {
         if (key === 'cancel' || key === 'menu') this.closeShop();
+        else if (key === 'up' || key === 'down') this.scrollPanel(this.el.shopList, key === 'down' ? 1 : -1);
         return true;
       }
       if (this.menuOpen) {
@@ -2422,6 +2455,8 @@ window.PKM = window.PKM || {};
           this.menuTab = order[i];
           PKM.AUDIO.sfx('move');
           this.renderMenu();
+        } else if (key === 'up' || key === 'down') {
+          this.scrollPanel(this.el.menuBody, key === 'down' ? 1 : -1);
         }
         return true;
       }
@@ -2484,7 +2519,8 @@ window.PKM = window.PKM || {};
       span.textContent = text;
       t.appendChild(span);
       this.el.toast.appendChild(t);
-      while (this.el.toast.children.length > 4) this.el.toast.firstChild.remove();
+      const maxToasts = (window.PKM_MAIN && PKM_MAIN.touchCoarse) ? 2 : 4;
+      while (this.el.toast.children.length > maxToasts) this.el.toast.firstChild.remove();
       setTimeout(() => {
         t.classList.add('out');
         setTimeout(() => t.remove(), 320);

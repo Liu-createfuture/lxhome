@@ -411,7 +411,7 @@ window.PKM = window.PKM || {};
     hairpin:    { name: '苔花发夹', price: 0, sell: 0, cat: 'key', icon: 'hairpin', desc: '小满遗失的苔花发夹，在溪边草丛里闪着微光。' },
     windbell:   { name: '松风铃', price: 0, sell: 0, cat: 'key', icon: 'windbell', desc: '山顶捡到的旧铜铃。风一吹，声音像从很远的地方传来。' },
     pearl:      { name: '溪珍珠', price: 0, sell: 500, cat: 'treasure', icon: 'pearl', desc: '圆润的溪珍珠。可以卖个好价钱。' },
-    rod:        { name: '旧钓竿', price: 0, sell: 0, cat: 'key', icon: 'rod', desc: '面向水面按 Z，就能钓起水中的宝可梦。' },
+    rod:        { name: '旧钓竿', price: 0, sell: 0, cat: 'key', icon: 'rod', desc: '面向水面按 A（调查），就能钓起水中的宝可梦。' },
     dex:        { name: '森林图鉴', price: 0, sell: 0, cat: 'key', icon: 'dex', desc: '苔爷爷送的图鉴，会自动记录遇见与捕获的宝可梦。' },
     badge:      { name: '森语徽章', price: 0, sell: 0, cat: 'key', icon: 'badge', desc: '溪桥道馆的证明。萤火森林的守卫会认可它。' },
 
@@ -1121,7 +1121,7 @@ window.PKM = window.PKM || {};
         return { speaker: '苔爷爷', lines: ['苔爷爷：风把你带来了。', '这片森林叫萤火森林。每到夏夜，光苔会和小小的萤火一起亮起来。', '可最近，光正一片片熄灭。连最老的树都开始做梦。', '拿着这本图鉴，带上你的伙伴，去溪桥镇找苔音吧。她是森林的守门人。', S.starter ? `苔爷爷：${PKM.SPECIES[S.starter].name}似乎很喜欢你呢。` : '苔爷爷：去吧，路会自己长出来的。'], effect: { type: 'give', item: 'dex', qty: 1 } };
       }
       if (!S.flags.badge) {
-        return { speaker: '苔爷爷', lines: ['苔爷爷：溪桥镇在东边。沿着微风小径一直走。', '草丛里会遇到野生宝可梦。按 Z 打开背包，用精灵球捕捉它们。', '属性相克会让战斗轻松很多。火克草，草克水，水克火。', '别忘了，伙伴不是工具。累了就让它们在驿站休息。'] };
+        return { speaker: '苔爷爷', lines: ['苔爷爷：溪桥镇在东边。沿着微风小径一直走。', '草丛里会遇到野生宝可梦。战斗中打开背包，用精灵球捕捉它们。', '属性相克会让战斗轻松很多。火克草，草克水，水克火。', '别忘了，伙伴不是工具。累了就让它们在驿站休息。'] };
       }
       if (!S.flags.forestCleared) {
         return { speaker: '苔爷爷', lines: ['苔爷爷：徽章的光芒我在这里都看见了。', '萤火森林的结界已经打开。去吧。', '如果遇到无法战胜的阴影，就想想你的伙伴为什么愿意跟着你。'] };
@@ -1172,7 +1172,7 @@ window.PKM = window.PKM || {};
       if (S.flags.fisherDone) return { speaker: '钓鱼佬阿河', lines: ['阿河：水面的波纹会说话。', '耐心一点，大鱼总在最后咬钩。'] };
       if (!S.bag.rod) {
         return {
-          speaker: '钓鱼佬阿河', lines: ['阿河：你盯着水面看了很久。', '想试试吗？这根旧钓竿跟着我二十年了。', '送给你吧。面向水面按 Z，就能钓鱼。', '钓上水属性宝可梦后，再来给我看看。'],
+          speaker: '钓鱼佬阿河', lines: ['阿河：你盯着水面看了很久。', '想试试吗？这根旧钓竿跟着我二十年了。', '送给你吧。面对水面按 A 就能钓鱼。', '钓上水属性宝可梦后，再来给我看看。'],
           effect: { type: 'give_rod' }
         };
       }

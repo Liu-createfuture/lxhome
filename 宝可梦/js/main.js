@@ -227,8 +227,9 @@
         if (this.stickDir) this.removeDir(this.stickDir);
         this.stickDir = dir;
         if (!dir) return;
+        // 战斗 / 面板打开时，摇杆用来切换选项与滚动列表
         if (B.active) { B.handleKey(dir); return; }
-        if (UI.isBlocking()) return;
+        if (UI.isBlocking()) { UI.handleKey(dir); return; }
         G.stopAutoMove();
         this.addDir(dir);
         this.moveCooldown = 0;
@@ -294,6 +295,10 @@
           buzz(12);
           const k = btn.dataset.touch === 'a' ? 'confirm' : 'cancel';
           if (B.active) { B.handleKey(k); return; }
+          if (UI.screen === 'title' && !UI.introActive) {
+            if (k === 'confirm') { if (G.hasSave()) UI.continueGame(); else UI.tryNewGame(); }
+            return;
+          }
           if (UI.handleKey(k)) return;
           if (UI.screen !== 'game') return;
           if (k === 'confirm') {
@@ -416,11 +421,13 @@
         this.lastHud = now;
         UI.updateHUD();
         document.body.classList.toggle('not-in-game', UI.screen !== 'game');
+        UI.syncTouchLabels();
         if (this.touchCoarse) {
+          // 操作区一直显示：对话、菜单、战斗里都能用 A / B / 摇杆
           const tc = document.getElementById('touch-controls');
-          const show = UI.screen === 'game' && !UI.menuOpen && !UI.mapOpen && !UI.shopOpen && !UI.modalOpen &&
-            !UI.transitioning && !UI.dialogOpen && !UI.busy && !PKM.BATTLE.active && !UI.battleStarting;
-          tc.classList.toggle('hidden', !show);
+          if (tc.classList.contains('hidden')) tc.classList.remove('hidden');
+          document.body.classList.toggle('panel-open',
+            UI.menuOpen || UI.mapOpen || UI.shopOpen || UI.modalOpen || !!PKM.BATTLE.active);
         }
       }
       if (now - this.lastNav > 200) {
