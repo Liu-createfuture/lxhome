@@ -1707,3 +1707,228 @@ body.is-mobile .battle-actions .battle-prompt { display: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* ============================================================
+   手机 / 平板：界面改用 1:1 像素排版（不跟着舞台缩小）
+   ============================================================ */
+body.mobile-ui .touch-controls { z-index: 95; }
+body.mobile-ui .mobile-bar { z-index: 96; }
+/* 面板打开 / 不在游戏里时收起竖屏辅助条 */
+body.panel-open .mobile-bar,
+body.not-in-game .mobile-bar { display: none !important; }
+
+body.mobile-ui .dialogue-layer,
+body.mobile-ui .menu-layer,
+body.mobile-ui .shop-layer,
+body.mobile-ui .map-layer,
+body.mobile-ui .modal-layer {
+  position: fixed; inset: 0;
+}
+
+/* 对话框：底部面板 */
+body.mobile-ui .dialogue-layer {
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 12px 10px 16px;
+  background: linear-gradient(0deg, rgba(4, 10, 7, .58), rgba(4, 10, 7, .14) 46%, transparent 74%);
+}
+body.mobile-ui .dialogue-box {
+  position: relative; left: auto; right: auto; bottom: auto;
+  width: min(780px, 100%); min-height: 0;
+  padding: 24px 20px 18px;
+  border: 3px solid #1d3127;
+}
+body.mobile-ui .dialogue-text { min-height: 0; padding-right: 26px; font-size: 17px; line-height: 1.72; }
+body.mobile-ui .dialogue-speaker { top: -17px; left: 14px; font-size: 13px; padding: 4px 12px; letter-spacing: 1px; }
+body.mobile-ui .dialogue-choices { gap: 10px; margin-top: 14px; }
+body.mobile-ui .dialogue-choices button { padding: 11px 18px; font-size: 15px; }
+body.mobile-ui .dialogue-next { bottom: 10px; right: 16px; font-size: 14px; }
+
+/* 菜单 / 商店 / 地图：占满可用空间 */
+body.mobile-ui .menu-window,
+body.mobile-ui .shop-window,
+body.mobile-ui .map-window {
+  width: min(920px, calc(100% - 12px));
+  height: calc(100% - 12px);
+  max-height: 680px;
+  margin: 0;
+}
+/* 给左下摇杆、右下 A / B 留出位置，面板不压在操作区下面 */
+@media (orientation: landscape) {
+  body.mobile-ui .map-region-panel { padding: 8px 10px 6px; }
+  body.mobile-ui #region-map { max-height: 210px; }
+  body.mobile-ui .map-legend { font-size: 10px; }
+  body.mobile-ui .menu-window,
+  body.mobile-ui .shop-window,
+  body.mobile-ui .map-window {
+    width: calc(100% - 348px);
+    height: calc(100% - 10px);
+  }
+  body.mobile-ui .dialogue-layer { padding: 10px 176px 14px 168px; }
+  body.mobile-ui .modal-window { max-width: calc(100vw - 348px); }
+}
+@media (orientation: portrait) {
+  body.mobile-ui .menu-window,
+  body.mobile-ui .shop-window,
+  body.mobile-ui .map-window {
+    height: calc(100% - 224px);
+  }
+  body.mobile-ui .menu-layer,
+  body.mobile-ui .shop-layer,
+  body.mobile-ui .map-layer,
+  body.mobile-ui .modal-layer { align-items: flex-start; padding-top: 8px; }
+  body.mobile-ui .menu-tabs { flex-wrap: wrap; }
+  body.mobile-ui .menu-tab { flex: 1 1 auto; text-align: center; }
+  body.mobile-ui .dialogue-layer { padding: 10px 10px 214px; }
+  body.mobile-ui .modal-window { max-height: calc(100vh - 224px); }
+}
+body.mobile-ui .menu-head,
+body.mobile-ui .shop-head,
+body.mobile-ui .map-head { padding: 10px 14px; gap: 10px; }
+body.mobile-ui .menu-title { font-size: 19px; letter-spacing: 2px; }
+body.mobile-ui .menu-player { font-size: 13px; gap: 9px; }
+body.mobile-ui .menu-tabs { padding: 0 6px; }
+body.mobile-ui .menu-tab { font-size: 14px; padding: 12px 12px 11px; letter-spacing: 1px; }
+body.mobile-ui .menu-body { padding: 12px; }
+body.mobile-ui .menu-foot,
+body.mobile-ui .shop-foot,
+body.mobile-ui .map-foot { font-size: 11px; padding: 7px 14px; }
+body.mobile-ui .close-btn { width: 40px; height: 40px; font-size: 22px; }
+
+/* 单列重排 */
+body.mobile-ui .party-layout,
+body.mobile-ui .bag-layout,
+body.mobile-ui .save-layout,
+body.mobile-ui .train-layout { grid-template-columns: 1fr; }
+body.mobile-ui .party-side,
+body.mobile-ui .bag-detail { margin-top: 6px; }
+body.mobile-ui .dex-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+body.mobile-ui .ach-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+body.mobile-ui .train-roster-list { flex-direction: row; overflow-x: auto; max-height: none; padding-bottom: 4px; }
+body.mobile-ui .train-roster-row { flex-direction: column; min-width: 80px; gap: 2px; }
+body.mobile-ui .train-roster-row .tr-name { text-align: center; }
+body.mobile-ui .train-tip { display: none; }
+body.mobile-ui .train-branches { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+body.mobile-ui .tm-list { grid-template-columns: 1fr; }
+body.mobile-ui .party-card .card-name { font-size: 16px; }
+body.mobile-ui .quest-hint { font-size: 13px; }
+body.mobile-ui .quest-card h4 { font-size: 16px; }
+body.mobile-ui .bag-row .bag-name { font-size: 14px; }
+body.mobile-ui .ach-body b { font-size: 13px; }
+body.mobile-ui .ach-body small { font-size: 11px; }
+
+/* 商店：列表滚动，详情固定在下方（购买按钮始终可见） */
+body.mobile-ui .shop-content {
+  display: flex; flex-direction: column;
+  grid-template-columns: none; overflow: hidden;
+}
+body.mobile-ui .shop-list { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; }
+body.mobile-ui .shop-detail {
+  flex: none; max-height: 48%; overflow-y: auto;
+  border-top: 3px solid #b29a6b; border-left: none; border-right: none; border-bottom: none;
+  padding: 10px 14px 12px;
+}
+body.mobile-ui .shop-detail .big-icon { display: none; }
+body.mobile-ui .shop-detail h3 { margin: 0 0 2px; font-size: 16px; }
+body.mobile-ui .shop-detail p { min-height: 0; margin: 2px 0 6px; font-size: 12px; line-height: 1.55; }
+body.mobile-ui .shop-detail .qty-row { margin: 6px 0; }
+body.mobile-ui .shop-detail .buy-row { margin-top: 0; padding-top: 6px; }
+
+/* 地图：地图在上，侧栏在下 */
+body.mobile-ui .map-content { grid-template-columns: 1fr; overflow-y: auto; }
+body.mobile-ui .map-side { overflow: visible; max-height: none; }
+body.mobile-ui #local-map { width: 100%; height: auto; aspect-ratio: 8 / 5; }
+
+/* 弹窗 */
+body.mobile-ui .modal-window {
+  width: min(720px, calc(100vw - 20px));
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+}
+
+/* 标题 / 序章 / 结局：也放到 1:1 像素层 */
+body.mobile-ui .title-screen,
+body.mobile-ui .intro-screen,
+body.mobile-ui .ending-screen { position: fixed; inset: 0; }
+
+body.mobile-ui #title-canvas {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+body.mobile-ui .title-tint { background: linear-gradient(0deg, rgba(4,12,9,.86), rgba(4,12,9,.28) 55%, rgba(4,12,9,.55)); }
+body.mobile-ui .title-content {
+  inset: 0; width: auto; height: auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 20px;
+  left: 0; top: 0;
+}
+body.mobile-ui .title-kicker { justify-content: center; }
+body.mobile-ui .title-series { margin-top: 14px; font-size: 17px; letter-spacing: 8px; }
+body.mobile-ui .title-logo { font-size: clamp(48px, 15vw, 76px); margin: 0; letter-spacing: 6px; }
+body.mobile-ui .title-en { letter-spacing: 4px; }
+body.mobile-ui .title-sub { margin-top: 12px; font-size: 15px; }
+body.mobile-ui .title-menu { width: min(340px, 86vw); gap: 10px; margin-top: 22px; }
+body.mobile-ui .title-btn { padding: 14px 16px; }
+body.mobile-ui .title-btn span { font-size: 19px; letter-spacing: 3px; }
+body.mobile-ui .title-btn small { font-size: 9px; }
+body.mobile-ui .title-foot { margin-top: 16px; font-size: 9px; }
+body.mobile-ui .title-meta { font-size: 9px; bottom: 8px; left: 14px; right: 14px; }
+
+body.mobile-ui .intro-frame {
+  flex-direction: column; gap: 8px;
+  padding: 10px; align-items: stretch; justify-content: stretch;
+}
+@media (orientation: landscape) {
+  body.mobile-ui .intro-frame { padding: 10px 176px 14px 168px; }
+  body.mobile-ui .title-content { padding: 12px 150px; }
+}
+@media (orientation: portrait) {
+  body.mobile-ui .intro-frame { padding: 10px 12px 214px; }
+  body.mobile-ui .intro-portrait-wrap { display: block; width: 100%; }
+  body.mobile-ui .portrait-frame { width: 88px; height: 88px; padding: 6px; margin: 0 auto; }
+  body.mobile-ui .portrait-caption { font-size: 13px; margin-top: 6px; letter-spacing: 2px; }
+  body.mobile-ui .portrait-caption small { font-size: 9px; }
+  body.mobile-ui .intro-leaf-deco { display: none; }
+}
+@media (orientation: landscape) and (max-height: 480px) {
+  body.mobile-ui .title-series { display: none; }
+  body.mobile-ui .title-logo { font-size: 52px; }
+  body.mobile-ui .title-sub { margin-top: 8px; font-size: 13px; line-height: 1.7; }
+  body.mobile-ui .title-menu { margin-top: 12px; gap: 8px; width: min(300px, 80vw); }
+  body.mobile-ui .title-btn { padding: 10px 14px; }
+  body.mobile-ui .title-foot { display: none; }
+  body.mobile-ui .title-kicker { font-size: 7px; }
+}
+body.mobile-ui .title-content { overflow-y: auto; }
+body.mobile-ui .intro-portrait-wrap { display: none; }
+body.mobile-ui .intro-copy {
+  width: 100%; max-width: 760px; min-height: 0; height: 100%;
+  padding: 22px 20px 16px; margin: 0 auto;
+}
+body.mobile-ui .intro-copy { justify-content: center; }
+body.mobile-ui .intro-text { font-size: 17px; line-height: 1.85; flex: 0 0 auto; }
+body.mobile-ui .starter-intro { font-size: 14px; }
+body.mobile-ui .starter-cards { gap: 8px; }
+body.mobile-ui .starter-card canvas { width: 68px; height: 68px; }
+body.mobile-ui .starter-card .starter-name { font-size: 15px; }
+body.mobile-ui .intro-name label { font-size: 14px; }
+body.mobile-ui .name-row input { font-size: 18px; }
+body.mobile-ui .intro-next { font-size: 12px; }
+
+@media (orientation: portrait) {
+  body.mobile-ui #title-canvas { object-fit: contain; }
+  body.mobile-ui .title-screen { background: radial-gradient(circle at 50% 40%, #10261d, #071310 72%); }
+}
+
+body.mobile-ui .ending-content { left: 18px; right: 18px; bottom: 24px; width: auto; }
+body.mobile-ui .ending-content h2 { font-size: 34px; }
+body.mobile-ui .ending-content p { font-size: 14px; }
+body.mobile-ui .ending-credits { width: auto; }
+
+/* 竖屏序章：显示小小头像，卡片剩下的空间给文字 */
+@media (orientation: portrait) {
+  body.mobile-ui .intro-portrait-wrap { display: block; width: 100%; }
+  body.mobile-ui .portrait-frame { width: 84px; height: 84px; padding: 6px; margin: 0 auto; }
+  body.mobile-ui .portrait-caption { font-size: 13px; margin-top: 5px; letter-spacing: 2px; }
+  body.mobile-ui .portrait-caption small { font-size: 9px; }
+  body.mobile-ui .intro-leaf-deco { display: none; }
+}

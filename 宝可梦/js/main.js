@@ -97,10 +97,24 @@
       document.addEventListener('focusout', () => setTimeout(() => this.fitStage(), 120));
     },
 
+    /* 手机 / 平板上把界面层搬出缩放舞台，改用 1:1 像素排版 */
+    adoptUIKit() {
+      if (this._adopted) return;
+      this._adopted = true;
+      const wrap = document.getElementById('stage-wrap');
+      ['title-screen', 'intro-screen', 'ending-screen',
+        'dialogue-layer', 'menu-layer', 'shop-layer', 'map-layer', 'modal-layer'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.parentElement !== wrap) wrap.appendChild(el);
+      });
+      document.body.classList.add('mobile-ui');
+    },
+
     fitStage() {
       // 正在输入名字时 iOS 键盘会压缩视口，先不要跟着缩放
       const ae = document.activeElement;
       if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+      if (this.touchCoarse) this.adoptUIKit();
       const stage = document.getElementById('stage');
       const vw = window.innerWidth, vh = Math.max(320, window.innerHeight);
       const coarse = this.touchCoarse;
@@ -427,7 +441,8 @@
           const tc = document.getElementById('touch-controls');
           if (tc.classList.contains('hidden')) tc.classList.remove('hidden');
           document.body.classList.toggle('panel-open',
-            UI.menuOpen || UI.mapOpen || UI.shopOpen || UI.modalOpen || !!PKM.BATTLE.active);
+            UI.menuOpen || UI.mapOpen || UI.shopOpen || UI.modalOpen || UI.dialogOpen ||
+            !!PKM.BATTLE.active || UI.transitioning);
         }
       }
       if (now - this.lastNav > 200) {
