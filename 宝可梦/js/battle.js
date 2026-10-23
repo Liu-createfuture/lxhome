@@ -8,6 +8,8 @@ window.PKM = window.PKM || {};
   const D = PKM.DATA;
   const G = PKM.GAME;
 
+  // 触屏设备上不显示键盘提示
+  const TOUCH = () => !!(window.PKM && PKM.MAIN && PKM.MAIN.touchCoarse);
   const STATUS_LABEL = { burn: '灼伤', poison: '中毒', par: '麻痹', sleep: '睡眠' };
   const STAT_LABEL = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
 
@@ -311,7 +313,7 @@ window.PKM = window.PKM || {};
       const moves = this.playerMon.moves;
       this.el.submenu.innerHTML = `
         <div class="moves-panel">
-          <div class="battle-prompt">选择招式 <span class="hint">X 返回 · 招式等级在特训页提升</span></div>
+          <div class="battle-prompt">选择招式 <span class="hint">${TOUCH() ? '点按出招' : 'X 返回'} · 等级在特训页提升</span></div>
           <div class="move-grid" style="grid-template-columns:repeat(${Math.min(4, Math.max(1, moves.length))},1fr)">
             ${moves.map((mv, i) => {
               const m = D.MOVES[mv.id];
@@ -351,7 +353,7 @@ window.PKM = window.PKM || {};
       }).join('') : '<div class="empty-note">背包里没有可以在战斗中使用的道具。</div>';
       this.el.submenu.innerHTML = `
         <div class="bag-panel">
-          <div class="battle-prompt">要使用什么？ <span class="hint">X 返回</span></div>
+          <div class="battle-prompt">要使用什么？ <span class="hint">${TOUCH() ? '点按使用' : 'X 返回'}</span></div>
           <div class="battle-bag-grid">${html}</div>
           <button class="back-btn" data-bact="back">返回</button>
         </div>`;
@@ -387,7 +389,7 @@ window.PKM = window.PKM || {};
       }).join('');
       this.el.submenu.innerHTML = `
         <div class="party-panel">
-          <div class="battle-prompt">${forced ? '选择下一只上场的宝可梦' : '要换上哪一只？'} <span class="hint">${forced ? '' : 'X 返回'}</span></div>
+          <div class="battle-prompt">${forced ? '选择下一只上场的宝可梦' : '要换上哪一只？'} <span class="hint">${forced ? '' : (TOUCH() ? '点按选择' : 'X 返回')}</span></div>
           <div class="battle-party-list">${cards}</div>
           ${forced ? '' : '<button class="back-btn" data-bact="back">返回</button>'}
         </div>`;

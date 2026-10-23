@@ -109,8 +109,15 @@
       const scale = Math.max(.12, Math.min((vw - pad * 2) / 960, (vh - pad * 2) / 600));
       const stageW = 960 * scale, stageH = 600 * scale;
       const x = Math.round((vw - stageW) / 2);
-      // 竖屏：画面贴近顶部，下方留给触屏按键；横屏：垂直居中
-      const y = Math.round(coarse && portrait ? Math.max(6, pad) : (vh - stageH) / 2);
+      // 竖屏：画面略微上移居中，下方留给辅助条和摇杆；横屏：垂直居中
+      let y;
+      if (coarse && portrait) {
+        const want = (vh - stageH) * 0.42;
+        const limit = vh - stageH - 340; // 给辅助条 + 摇杆留出空间
+        y = Math.round(Math.max(pad, Math.min(want, limit)));
+      } else {
+        y = Math.round((vh - stageH) / 2);
+      }
       stage.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
       document.documentElement.style.setProperty('--stage-scale', scale);
       document.body.classList.toggle('is-mobile', coarse);
@@ -194,25 +201,32 @@
       });
       window.addEventListener('blur', () => { this.dirOrder = []; this.shift = false; });
 
-      // touch buttons
+      // 触摸控制：虚拟摇杆 + A / B
+      const buzz = (ms) => {
+        try { if (navigator.vibrate) navigator.vibrate(ms); } catch (err) { /* 忽略 */ }
+      };
       const touch = document.getElementById('touch-controls');
-      const dpad = touch.querySelector('.dpad');
-      this.padDir = null;
-      const paintPad = (dir) => {
-        dpad.querySelectorAll('[data-dir]').forEach(b => {
-          b.classList.toggle('pressed', b.dataset.dir === dir);
-        });
+      const stick = document.getElementById('stick');
+      const knob = document.getElementById('stick-knob');
+      this.stickDir = null;
+      this.touchRun = false;
+
+      const setKnob = (dx, dy) => {
+        if (!knob) return;
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
       };
-      const releasePad = () => {
-        if (this.padDir) this.removeDir(this.padDir);
-        this.padDir = null;
-        paintPad(null);
+      const releaseStick = () => {
+        if (this.stickDir) this.removeDir(this.stickDir);
+        this.stickDir = null;
+        this.touchRun = false;
+        stick.classList.remove('active', 'running');
+        setKnob(0, 0);
       };
-      const pressDir = (dir) => {
-        if (!dir || dir === this.padDir) return;
-        releasePad();
-        this.padDir = dir;
-        paintPad(dir);
+      const applyDir = (dir) => {
+        if (dir === this.stickDir) return;
+        if (this.stickDir) this.removeDir(this.stickDir);
+        this.stickDir = dir;
+        if (!dir) return;
         if (B.active) { B.handleKey(dir); return; }
         if (UI.isBlocking()) return;
         G.stopAutoMove();
@@ -223,41 +237,61 @@
           if (!ok) this.moveCooldown = .2;
         }
       };
-      const readPad = (e) => {
-        const r = dpad.getBoundingClientRect();
+      // 根据手指位置更新方向 / 奔跑 / 摇杆头
+      const updateStick = (clientX, clientY) => {
+        const r = stick.getBoundingClientRect();
+        if (!r.width) return;
         const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-        const dx = e.clientX - cx, dy = e.clientY - cy;
-        if (Math.hypot(dx, dy) < r.width * .11) return null;
-        return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+        let dx = clientX - cx, dy = clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        const radius = r.width / 2;
+        const travel = Math.max(18, radius - 34);
+        if (dist > travel) { dx = dx / dist * travel; dy = dy / dist * travel; }
+        setKnob(dx, dy);
+        const ratio = dist / radius;
+        const dir = ratio < .16 ? null
+          : Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+        const run = ratio > .86;
+        if (run !== this.touchRun) {
+          this.touchRun = run;
+          stick.classList.toggle('running', run);
+          if (!B.active && G.state) G.state.player.running = run;
+        }
+        if (dir !== this.stickDir) {
+          applyDir(dir);
+          if (dir) buzz(8);
+        }
       };
-      let padPointer = null;
-      dpad.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        PKM.AUDIO.init();
-        padPointer = e.pointerId;
-        try { dpad.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
-        const dir = readPad(e);
-        if (dir) pressDir(dir);
-        else paintPad(null);
-      });
-      dpad.addEventListener('pointermove', (e) => {
-        if (padPointer === null || e.pointerId !== padPointer) return;
-        e.preventDefault();
-        const dir = readPad(e);
-        if (dir) pressDir(dir);
-      });
-      const endPad = (e) => {
-        if (padPointer !== null && e.pointerId !== padPointer) return;
-        padPointer = null;
-        releasePad();
-      };
-      dpad.addEventListener('pointerup', endPad);
-      dpad.addEventListener('pointercancel', endPad);
-      dpad.addEventListener('lostpointercapture', endPad);
+      let stickPointer = null;
+      if (stick) {
+        stick.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          PKM.AUDIO.init();
+          stickPointer = e.pointerId;
+          stick.classList.add('active');
+          try { stick.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+          updateStick(e.clientX, e.clientY);
+        });
+        stick.addEventListener('pointermove', (e) => {
+          if (stickPointer === null || e.pointerId !== stickPointer) return;
+          e.preventDefault();
+          updateStick(e.clientX, e.clientY);
+        });
+        const endStick = (e) => {
+          if (stickPointer !== null && e.pointerId !== stickPointer) return;
+          stickPointer = null;
+          releaseStick();
+        };
+        stick.addEventListener('pointerup', endStick);
+        stick.addEventListener('pointercancel', endStick);
+        stick.addEventListener('lostpointercapture', endStick);
+      }
+
       touch.querySelectorAll('[data-touch]').forEach(btn => {
         btn.addEventListener('pointerdown', (e) => {
           e.preventDefault();
           PKM.AUDIO.init();
+          buzz(12);
           const k = btn.dataset.touch === 'a' ? 'confirm' : 'cancel';
           if (B.active) { B.handleKey(k); return; }
           if (UI.handleKey(k)) return;
@@ -269,6 +303,18 @@
           }
         });
       });
+
+      // 触屏上把键帽换成 A / B / 地图，避免出现键盘提示
+      if (this.touchCoarse) {
+        document.querySelectorAll('.key-cap').forEach(cap => {
+          const t = cap.textContent.trim();
+          // 导航条上的「地图」按钮本身就有文字，键帽直接隐藏
+          if (t === 'M' && cap.closest('#nav-map-btn')) { cap.style.display = 'none'; return; }
+          if (t === 'Z') cap.textContent = 'A';
+          else if (t === 'X') cap.textContent = 'B';
+          else if (t === 'M') cap.textContent = '地图';
+        });
+      }
 
       // 全屏 / 横屏
       const fsEl = document.documentElement;
@@ -329,7 +375,7 @@
     updateMovement(dt) {
       this.moveCooldown = Math.max(0, this.moveCooldown - dt);
       if (!G.state) return;
-      G.state.player.running = this.shift;
+      G.state.player.running = this.shift || this.touchRun;
       if (G.paused || UI.isBlocking() || B.active || G.move) return;
       if (this.moveCooldown > 0) return;
       const dir = this.dirOrder[this.dirOrder.length - 1];
@@ -369,6 +415,7 @@
       if (now - this.lastHud > 500) {
         this.lastHud = now;
         UI.updateHUD();
+        document.body.classList.toggle('not-in-game', UI.screen !== 'game');
         if (this.touchCoarse) {
           const tc = document.getElementById('touch-controls');
           const show = UI.screen === 'game' && !UI.menuOpen && !UI.mapOpen && !UI.shopOpen && !UI.modalOpen &&
