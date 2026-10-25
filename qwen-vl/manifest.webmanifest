@@ -1,0 +1,24 @@
+{
+  "name": "Qwen VL · 本地多模态助手",
+  "short_name": "Qwen VL",
+  "description": "本地运行的 Qwen2.5-VL 多模态对话助手",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
