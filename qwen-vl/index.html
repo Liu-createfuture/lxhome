@@ -1,3 +1,9 @@
+<!--
+  这个文件是自动生成的，请不要直接改。
+  前端真身在本机项目的 app.py（PAGE 常量）里，改完执行：
+      python build_static.py
+  生成脚本会把接口地址指向 https://ai.lxhome.asia
+-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -8,8 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
 <title>Qwen VL · 本地多模态助手</title>
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/icon/180">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-title" content="Qwen VL">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='26' fill='%234D6BFE'/><path d='M50 20l7.6 20.4L78 48l-20.4 7.6L50 76l-7.6-20.4L22 48l20.4-7.6z' fill='white'/></svg>">
 <style>
@@ -404,6 +410,51 @@ body.sb-collapsed #sidebar{flex-basis:0;opacity:0;pointer-events:none}
 }
 .tool:hover{background:#F2F4F7;color:var(--blue)}
 .tool svg{width:19px;height:19px}
+/* 联网搜索开关：平时是一条灰底胶囊，开启后变蓝底 */
+.tool.web{
+  width:auto;height:30px;padding:0 11px 0 8px;gap:6px;border-radius:15px;
+  border:1px solid var(--line-2);background:#fff;font-size:12.5px;color:var(--tx-2);
+  transition:background .16s,color .16s,border-color .16s,box-shadow .16s;
+}
+.tool.web svg{width:15px;height:15px}
+.tool.web span{white-space:nowrap;line-height:1}
+.tool.web:hover{background:#F5F7FF;color:var(--blue);border-color:#D6DEFB}
+.tool.web.on{
+  background:rgba(77,107,254,.09);border-color:rgba(77,107,254,.32);color:var(--blue);
+  box-shadow:0 0 0 3px rgba(77,107,254,.07);
+}
+.tool.web.on svg{animation:none}
+/* 联网搜索结果卡片 */
+.sres{
+  border:1px solid var(--line-2);background:#FBFCFE;border-radius:13px;
+  padding:10px 13px;margin:0 0 14px;max-width:100%;
+}
+.sres.pending{display:flex;align-items:center;gap:8px;color:var(--tx-3);font-size:13px}
+.sres.pending .spin{
+  width:13px;height:13px;border-radius:50%;border:2px solid #D7DDEA;border-top-color:var(--blue);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sres-head{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--tx-2);margin-bottom:8px}
+.sres-head b{font-weight:600;color:var(--tx)}
+.sres-head svg{width:14px;height:14px;color:var(--blue);flex:0 0 14px}
+.seng{
+  padding:1px 7px;border-radius:6px;background:rgba(77,107,254,.1);
+  color:var(--blue);font-size:11px;line-height:1.6;
+}
+.sms{color:var(--tx-3);font-size:11.5px;margin-left:auto}
+.slist{display:flex;flex-direction:column;gap:5px}
+.sitem{
+  display:flex;align-items:flex-start;gap:7px;color:var(--tx-2);text-decoration:none;
+  font-size:12.8px;line-height:1.5;border-radius:6px;padding:1px 0;
+}
+.sitem i{
+  flex:0 0 16px;height:16px;margin-top:2px;border-radius:5px;background:#EDF0F7;color:#8A93A3;
+  font-size:10.5px;font-style:normal;display:flex;align-items:center;justify-content:center;
+}
+.sitem span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sitem:hover span{color:var(--blue);text-decoration:underline}
+.sres-err{font-size:12.5px;color:var(--tx-3)}
 .tool.rec{background:#FDECEC;color:#F04438;animation:pulse 1.4s infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(240,68,56,.35)}50%{box-shadow:0 0 0 7px rgba(240,68,56,0)}}
 #send{
@@ -731,6 +782,10 @@ body.sb-collapsed #sidebar{flex-basis:0;opacity:0;pointer-events:none}
           <textarea id="text" rows="1" placeholder="给 Qwen VL 发送消息…"></textarea>
           <div class="tool-row">
             <div class="tools">
+              <button class="tool web" id="webBtn" title="联网搜索（DuckDuckGo）">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg>
+                <span>联网搜索</span>
+              </button>
               <button class="tool" id="imgBtn" title="上传图片（也可拖入/粘贴）">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3.5"/><circle cx="8.6" cy="9.4" r="1.6"/><path d="M3.5 17.2l4.6-4.4a2 2 0 0 1 2.7 0l3 2.9 2-2a2 2 0 0 1 2.7 0l2.8 2.7"/></svg>
               </button>
@@ -1100,6 +1155,59 @@ function prefersReduce(){
 var ICON_COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M15 5.5A2.5 2.5 0 0 0 12.5 3H6.5A2.5 2.5 0 0 0 4 5.5v6A2.5 2.5 0 0 0 6.5 14"/></svg>';
 var ICON_REGEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 6.1"/><path d="M20 4.5V11h-6.2"/></svg>';
 var ICON_BOLT='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.2 2.4L5 13.1h5.3l-1.1 8.5 8.4-10.9h-5.4l1-8.3z"/></svg>';
+var ICON_GLOBE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg>';
+
+/* ============ 联网搜索 ============ */
+var LS_WEB='qvl_web', webOn=(localStorage.getItem(LS_WEB)==='1');
+var webBtn=$('#webBtn');
+function syncWebBtn(){
+  webBtn.classList.toggle('on', webOn);
+  webBtn.title = webOn ? '联网搜索已开启（DuckDuckGo）' : '点击开启联网搜索';
+  webBtn.setAttribute('aria-pressed', webOn?'true':'false');
+}
+webBtn.addEventListener('click', function(){
+  webOn=!webOn;
+  localStorage.setItem(LS_WEB, webOn?'1':'0');
+  syncWebBtn();
+  toast(webOn?'已开启联网搜索':'已关闭联网搜索');
+});
+syncWebBtn();
+
+function escAttr(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return c==='&'?'&amp;':c==='<'?'&lt;':c==='>'?'&gt;':c==='"'?'&quot;':'&#39;';
+  });
+}
+function safeUrl(u){
+  u=String(u||'');
+  return /^https?:\/\//i.test(u) ? u : '';
+}
+/* info: {query, engine, ms, sources:[{title,url}], error}
+   pending=true 时渲染"正在搜索"的占位 */
+function searchCardHTML(info, pending){
+  if(pending){
+    return '<div class="sres pending"><span class="spin"></span>正在联网搜索…</div>';
+  }
+  info=info||{};
+  var src=(info.sources||[]).filter(function(s){ return s && safeUrl(s.url); });
+  var head='<div class="sres-head">'+ICON_GLOBE+'<b>已联网搜索</b>'+
+    (info.engine? '<span class="seng">'+esc(info.engine)+'</span>':'')+
+    (info.ms? '<span class="sms">'+(info.ms/1000).toFixed(1)+'s</span>':'')+'</div>';
+  var list='';
+  if(src.length){
+    list='<div class="slist">'+src.slice(0,6).map(function(s,i){
+      return '<a class="sitem" href="'+escAttr(safeUrl(s.url))+'" target="_blank" rel="noopener noreferrer"'+
+        ' title="'+escAttr(s.title)+'"><i>'+(i+1)+'</i><span>'+esc(s.title||s.url)+'</span></a>';
+    }).join('')+'</div>';
+  }
+  var note='';
+  if(info.error){
+    note='<div class="sres-err">'+esc(info.error)+'</div>';
+  }else if(!src.length){
+    note='<div class="sres-err">搜索没有返回可用的网页结果。</div>';
+  }
+  return '<div class="sres">'+head+list+note+'</div>';
+}
 
 /* ---- 速度格式化与徽标 ---- */
 function fmtTps(v){
@@ -1161,7 +1269,8 @@ function msgNode(m, idx, total){
     node.innerHTML='<div class="bubble">'+(imgs?'<div class="imgs">'+imgs+'</div>':'')+txt+'</div>';
   }else{
     node.className='msg ai';
-    node.innerHTML='<div class="md">'+md(m.content||'')+'</div>'+
+    node.innerHTML=(m.search? searchCardHTML(m.search,false):'')+
+      '<div class="md">'+md(m.content||'')+'</div>'+
       '<div class="mfoot">'+speedBadge(m.usage)+
         '<div class="acts"><button class="act" data-act="copy" title="复制">'+ICON_COPY+'<span>复制</span></button>'+
         (idx===total-1?'<button class="act" data-act="regen" title="重新生成">'+ICON_REGEN+'<span>重新生成</span></button>':'')+
@@ -1480,8 +1589,9 @@ async function send(){
   await streamReply(history, text, imgs);
 }
 
-async function streamReply(history, text, imgs){
+async function streamReply(history, text, imgs, forceWeb){
   streaming=true; setSendState();
+  var doWeb = (typeof forceWeb==='boolean')? forceWeb : webOn;
   var s=sessions[curId];
   var node=document.createElement('div');
   node.className='msg ai streaming';
@@ -1499,6 +1609,8 @@ async function streamReply(history, text, imgs){
   updateJump();
 
   var acc='', raw='', timer=null, aborted=false, usage=null;
+  var searchData=null, searchEl=null;
+  var SEARCH_TAG='\u0000@@SEARCH@@';
   var histChars=0;
   (history||[]).forEach(function(m){ histChars += (m.content||'').length; });
 
@@ -1540,8 +1652,40 @@ async function streamReply(history, text, imgs){
     timer=setTimeout(function(){ timer=null; paint(); }, 42);
   }
 
+  /* 搜索状态卡片：先占位"正在搜索"，拿到结果后原地换成来源列表 */
+  function renderSearch(pending){
+    if(!searchEl){
+      searchEl=document.createElement('div');
+      node.insertBefore(searchEl, mdEl);
+    }
+    searchEl.innerHTML=searchCardHTML(searchData, pending);
+  }
+  function consumeSearchMarks(){
+    var guard=0;
+    while(raw.indexOf(SEARCH_TAG)===0 && guard++<8){
+      var nl=raw.indexOf('\n');
+      if(nl<0) return;                 // 标记还没收全，等下一块
+      var payload=raw.slice(SEARCH_TAG.length, nl);
+      raw=raw.slice(nl+1);
+      var d=null;
+      try{ d=JSON.parse(payload); }catch(e){}
+      if(!d) continue;
+      if(d.stage==='searching'){
+        searchData={query:d.query||'', engine:'', ms:0, sources:[], error:''};
+        renderSearch(true);
+        if(autoScroll) scrollBottom(false);
+      }else if(d.stage==='done'){
+        searchData={query:d.query||'', engine:d.engine||'', ms:d.ms||0,
+                    sources:d.sources||[], error:d.error||''};
+        renderSearch(false);
+        if(autoScroll) scrollBottom(false);
+      }
+    }
+  }
+
   try{
-    var bodyStr=JSON.stringify({text:text, images:imgs, history:history, num_ctx:numCtx});
+    var bodyStr=JSON.stringify({text:text, images:imgs, history:history,
+                               num_ctx:numCtx, web:!!doWeb});
     // 先自查体积：超过后端上限时服务端会直接断开连接，浏览器只能报 Failed to fetch
     if(bodyStr.length > BODY_MAX_CHARS){
       var e0=new Error('这次请求有 '+fmtSize(Math.round(bodyStr.length*0.9))+'（图片转码后会再膨胀），超过单次上限。');
@@ -1566,17 +1710,19 @@ async function streamReply(history, text, imgs){
       var chunk=await reader.read();
       if(chunk.done) break;
       raw += dec.decode(chunk.value, {stream:true});
+      consumeSearchMarks();          // 先吃掉开头的联网搜索标记
       // 正文末尾可能跟着 NUL 开头的用量信息，切掉后单独解析
-      var cut=raw.indexOf('\u0000');
-      if(cut>=0){
-        acc=raw.slice(0,cut);
-        var rest=raw.slice(cut+1);
-        var brace=rest.indexOf('{');
+      var uAt=raw.indexOf('\u0000@@USAGE@@');
+      if(uAt>=0){
+        acc=raw.slice(0,uAt);
+        var brace=raw.indexOf('{', uAt);
         if(brace>=0){
-          try{ usage=JSON.parse(rest.slice(brace)); }catch(e3){}
+          try{ usage=JSON.parse(raw.slice(brace)); }catch(e3){}
         }
       }else{
-        acc=raw;
+        // 还可能有没接收完整的标记，先不显示，避免闪出一串乱码
+        var nul=raw.indexOf('\u0000');
+        acc = nul>=0 ? raw.slice(0,nul) : raw;
       }
       if(!tFirst && acc){
         tFirst=performance.now(); lastT=tFirst; lastTok=0;
@@ -1636,7 +1782,9 @@ async function streamReply(history, text, imgs){
     }
 
     if(acc.trim()){
-      s.messages.push({role:'assistant', content:acc, usage: msgUsage});
+      var assistantMsg={role:'assistant', content:acc, usage: msgUsage};
+      if(searchData) assistantMsg.search=searchData;
+      s.messages.push(assistantMsg);
       s.ts=Date.now();
       save();
       updateUsagePill();
@@ -1666,11 +1814,12 @@ function regenerate(){
   for(var k=s.messages.length-1;k>=0;k--){ if(s.messages[k].role==='user'){ i=k; break; } }
   if(i<0) return;
   var u=s.messages[i];
+  var prevA=s.messages[i+1];      // 被替换掉的那条回复，用来沿用搜索设置
   var history=s.messages.slice(0,i).slice(-10).map(function(m){ return {role:m.role, content:m.content||''}; });
   s.messages=s.messages.slice(0,i);
   s.messages.push(u);
   s.ts=Date.now(); save(); renderChat();
-  streamReply(history, u.content||'', u.imgs||[]);
+  streamReply(history, u.content||'', u.imgs||[], prevA && prevA.search ? true : undefined);
 }
 
 /* ============ 滚动 ============ */
@@ -1955,205 +2104,3 @@ window.addEventListener('beforeunload', save);
 </script>
 </body>
 </html>
-"""
-
-# ---------- 后端 ----------
-@app.route("/")
-def index():
-    return render_template_string(PAGE)
-
-
-@app.route("/manifest.webmanifest")
-def manifest():
-    """让手机可以「添加到主屏幕」，像 App 一样全屏使用。"""
-    data = {
-        "name": "Qwen VL · 本地多模态助手",
-        "short_name": "Qwen VL",
-        "description": "本地运行的 Qwen2.5-VL 多模态对话助手",
-        "start_url": "/",
-        "scope": "/",
-        "display": "standalone",
-        "orientation": "portrait",
-        "background_color": "#FFFFFF",
-        "theme_color": "#FFFFFF",
-        "icons": [
-            {"src": "/icon/512", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-            {"src": "/icon/180", "sizes": "180x180", "type": "image/png"},
-        ],
-    }
-    return Response(
-        json.dumps(data, ensure_ascii=False),
-        mimetype="application/manifest+json",
-        headers={"Cache-Control": "public, max-age=86400"},
-    )
-
-
-@app.route("/icon/<int:size>")
-def icon(size):
-    """返回预生成的应用图标（缺失时回退到内联 SVG）。"""
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", f"icon-{size}.png")
-    if os.path.exists(path):
-        with open(path, "rb") as f:
-            return Response(f.read(), mimetype="image/png",
-                            headers={"Cache-Control": "public, max-age=604800"})
-    svg = (
-        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>"
-        "<rect width='100' height='100' rx='22' fill='#4D6BFE'/>"
-        "<path d='M50 20l7.6 20.4L78 48l-20.4 7.6L50 76l-7.6-20.4L22 48l20.4-7.6z' fill='white'/>"
-        "</svg>"
-    )
-    return Response(svg, mimetype="image/svg+xml")
-
-
-def _model_context_length(model):
-    """从 Ollama 读取模型的上下文窗口大小（带缓存）。"""
-    if model in _CTX_CACHE:
-        return _CTX_CACHE[model]
-    ctx = 32768
-    try:
-        r = requests.post(f"{OLLAMA_URL}/api/show", json={"model": model}, timeout=3)
-        info = r.json().get("model_info", {}) or {}
-        for k, v in info.items():
-            if k.endswith(".context_length") and isinstance(v, int) and v > 0:
-                ctx = v
-                break
-    except Exception:  # noqa: BLE001
-        pass
-    _CTX_CACHE[model] = ctx
-    return ctx
-
-
-@app.route("/api/status")
-def api_status():
-    """探测 Ollama 是否可用、模型是否已拉取，并返回上下文窗口信息。"""
-    try:
-        r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=2.5)
-        r.raise_for_status()
-        names = [m.get("name", "") for m in r.json().get("models", [])]
-        return jsonify({
-            "ok": True,
-            "model": MODEL,
-            "available": any(n == MODEL or n.split(":")[0] == MODEL for n in names),
-            "models": names,
-            "context_length": _model_context_length(MODEL),
-            "num_ctx_default": DEFAULT_NUM_CTX,
-            "system_chars": len(SYSTEM_PROMPT),
-        })
-    except Exception as e:  # noqa: BLE001
-        return jsonify({
-            "ok": False, "model": MODEL, "error": str(e),
-            "context_length": 32768, "num_ctx_default": DEFAULT_NUM_CTX,
-            "system_chars": len(SYSTEM_PROMPT),
-        })
-
-
-@app.route("/chat", methods=["POST"])
-def chat():
-    data = request.get_json(force=True)
-    user_text = (data.get("text") or "").strip()
-    images = data.get("images") or []
-    history = data.get("history") or []
-
-    if not user_text and not images:
-        return jsonify({"error": "请输入文字或附带图片"}), 400
-
-    # 上下文长度（前端滑杆传上来，做一次范围收敛）
-    try:
-        num_ctx = int(data.get("num_ctx") or DEFAULT_NUM_CTX)
-    except (TypeError, ValueError):
-        num_ctx = DEFAULT_NUM_CTX
-    num_ctx = max(MIN_NUM_CTX, min(MAX_NUM_CTX, num_ctx))
-
-    # 构建 Ollama 消息（qwen2.5vl 图片放 messages 的 images 数组）
-    content = user_text or ("请描述这张图片。" if images else "")
-    msg = {"role": "user", "content": content}
-    if images:
-        b64s = []
-        for im in images:
-            b = im.split(",", 1)[1] if "," in im else im
-            b64s.append(b)
-        # 体积兜底：过大的图既拖慢预填，也容易让 Ollama 直接报错
-        total_img = sum(len(b) for b in b64s)
-        if total_img > 18 * 1024 * 1024:
-            return jsonify({
-                "error": "图片总量过大（约 %.1f MB），请减少图片数量或降低分辨率"
-                % (total_img / 1048576)
-            }), 413
-        msg["images"] = b64s
-
-    # 多轮上下文（仅文本，避免每轮重复上传图片）
-    messages = []
-    for h in history[-12:]:
-        if not isinstance(h, dict):
-            continue
-        role = h.get("role")
-        text = (h.get("content") or "").strip()
-        if role in ("user", "assistant") and text:
-            messages.append({"role": role, "content": text})
-    while messages and messages[0]["role"] != "user":
-        messages.pop(0)
-    messages.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
-
-    def generate():
-        usage = {}
-        t_start = time.perf_counter()
-        t_first = None
-        try:
-            resp = requests.post(
-                f"{OLLAMA_URL}/api/chat",
-                json={
-                    "model": MODEL,
-                    "messages": messages,
-                    "stream": True,
-                    "options": {"num_ctx": num_ctx},
-                },
-                stream=True, timeout=600,
-            )
-            resp.raise_for_status()
-            for line in resp.iter_lines(decode_unicode=True):
-                if not line:
-                    continue
-                try:
-                    chunk = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if chunk.get("done"):
-                    eval_cnt = chunk.get("eval_count") or 0
-                    eval_ns = chunk.get("eval_duration") or 0
-                    prompt_ns = chunk.get("prompt_eval_duration") or 0
-                    load_ns = chunk.get("load_duration") or 0
-                    total_ns = chunk.get("total_duration") or 0
-                    usage = {
-                        "prompt": chunk.get("prompt_eval_count") or 0,
-                        "eval": eval_cnt,
-                        # 以下均为纳秒
-                        "eval_ns": eval_ns,
-                        "prompt_ns": prompt_ns,
-                        "load_ns": load_ns,
-                        "total_ns": total_ns,
-                        "num_ctx": num_ctx,
-                        # 生成速度 / 首字延迟（秒），后端先算好，前端直接用
-                        "tps": round(eval_cnt / (eval_ns / 1e9), 1) if eval_ns and eval_cnt else 0,
-                        "ttft": round((prompt_ns + load_ns) / 1e9, 2) if prompt_ns else 0,
-                        # 墙钟兜底（Ollama 某些版本不返回 *_duration）
-                        "wall": round(time.perf_counter() - t_start, 2),
-                        "ttft_wall": round((t_first or time.perf_counter()) - t_start, 2),
-                    }
-                delta = chunk.get("message", {}).get("content", "")
-                if delta:
-                    if t_first is None:
-                        t_first = time.perf_counter()
-                    yield delta
-        except requests.exceptions.RequestException as e:
-            yield f"\n\n> **调用 Ollama 失败**：{e}\n>\n> 请确认 Ollama 已启动（`ollama serve`）。"
-        finally:
-            if usage:
-                yield USAGE_MARK + json.dumps(usage)
-
-    return Response(
-        generate(),
-        mimetype="text/plain; charset=utf-8",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
-
-
