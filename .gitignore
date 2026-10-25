@@ -10,3 +10,4 @@ refresh_nav.py
 *.ps1
 .workbuddy/
 node_modules/
+_shots/
