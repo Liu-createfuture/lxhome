@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
 <title>Qwen VL · 本地多模态助手</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon/180">
 <meta name="apple-mobile-web-app-title" content="Qwen VL">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='26' fill='%234D6BFE'/><path d='M50 20l7.6 20.4L78 48l-20.4 7.6L50 76l-7.6-20.4L22 48l20.4-7.6z' fill='white'/></svg>">
 <style>
@@ -373,6 +373,16 @@ body.sb-collapsed #sidebar{flex-basis:0;opacity:0;pointer-events:none}
   opacity:0;transition:opacity .15s;
 }
 .att:hover .rm{opacity:1}
+@media (hover:none){.att .rm{opacity:1}}   /* 触屏没有 hover，删除按钮常显 */
+.att.loading::after{
+  content:'';position:absolute;inset:0;background:
+    linear-gradient(100deg,rgba(255,255,255,0) 20%,rgba(255,255,255,.85) 50%,rgba(255,255,255,0) 80%) 0 0/220% 100% no-repeat,
+    #EEF1F6;
+  animation:attShine 1.1s linear infinite;
+}
+.att.loading .rm{opacity:1}
+@keyframes attShine{0%{background-position:120% 0,0 0}100%{background-position:-120% 0,0 0}}
+.img-note{font-size:12.5px;color:var(--tx-3);margin-bottom:4px}
 #box{
   border:1px solid var(--line-2);border-radius:22px;background:#fff;
   padding:9px 9px 9px 13px;transition:border-color .18s,box-shadow .18s;
@@ -866,11 +876,39 @@ function md(src){
 var LS_S='qvl_sessions_v2', LS_O='qvl_order_v2', LS_C='qvl_sb_collapsed';
 var sessions={}, order=[], curId=null;
 
-function save(){
+function _trySave(){
   try{
     localStorage.setItem(LS_S, JSON.stringify(sessions));
     localStorage.setItem(LS_O, JSON.stringify(order));
-  }catch(e){}
+    return true;
+  }catch(e){ return false; }
+}
+function save(){
+  if(_trySave()) return true;
+  /* 超出浏览器存储配额（图片很占地方，通常 5MB 上限）：
+     从最旧的会话开始丢弃图片数据，先保住文字，避免整段对话静默丢失 */
+  var ids=order.slice().sort(function(a,b){
+    return ((sessions[a]||{}).ts||0) - ((sessions[b]||{}).ts||0);
+  });
+  for(var k=0;k<ids.length;k++){
+    var ss=sessions[ids[k]];
+    if(!ss || !ss.messages) continue;
+    var hit=false;
+    for(var j=0;j<ss.messages.length;j++){
+      var mm=ss.messages[j];
+      if(mm && mm.imgs && mm.imgs.length){ mm.imgs=[]; mm.imgsDropped=true; hit=true; }
+    }
+    if(hit && _trySave()) return true;
+  }
+  /* 还是存不下：把非当前会话的老对话裁到最近 2 条 */
+  for(var k2=0;k2<ids.length && ids.length>1;k2++){
+    if(ids[k2]===curId) continue;
+    var s2=sessions[ids[k2]];
+    if(!s2 || !s2.messages || s2.messages.length<=2) continue;
+    s2.messages=s2.messages.slice(-2);
+    if(_trySave()) return true;
+  }
+  return false;
 }
 function load(){
   try{ sessions = JSON.parse(localStorage.getItem(LS_S)) || {}; }catch(e){ sessions = {}; }
@@ -1117,6 +1155,9 @@ function msgNode(m, idx, total){
       return '<img src="'+u+'" data-full="'+u+'" alt="图片">';
     }).join('');
     var txt = m.content ? '<div class="utext">'+esc(m.content)+'</div>' : '';
+    if(m.imgsDropped && !imgs){
+      txt = '<div class="img-note">（这张图片已被清理以节省本地空间）</div>' + txt;
+    }
     node.innerHTML='<div class="bubble">'+(imgs?'<div class="imgs">'+imgs+'</div>':'')+txt+'</div>';
   }else{
     node.className='msg ai';
@@ -1184,26 +1225,119 @@ function fallbackCopy(t){
 }
 
 /* ============ 图片附件 ============ */
+/* 发送前统一压缩：长边 ≤ IMG_MAX_EDGE、转 WebP/JPEG。
+   原图转 base64 会再膨胀 33%，几张大图就能把请求体顶到后端上限，
+   服务端会在读体阶段直接掐断连接，浏览器只能报 Failed to fetch。
+   压缩后单图通常 100~400KB，既不撑爆请求体，模型预填也快很多。 */
 var attachments=[];
+var IMG_MAX_EDGE=1568;             // qwen2.5-VL 再放大只是白烧 token
+var IMG_MAX_FILE=20*1024*1024;     // 单张原文件上限
+var BODY_MAX_CHARS=20*1024*1024;   // 请求体警戒线（后端 64MB，但尽量压到 20MB 内更稳）
+var IMG_TARGET_B64=1400*1024;      // 单张压缩后 base64 目标上限（约 1.4MB，对应原图约 1MB）
+// 质量递减序列：先 0.86 快压，仍超目标就逐步降质，绝不回退用原图
+var IMG_QUALITIES=[0.86, 0.78, 0.7, 0.62, 0.55, 0.48];
+
+function fmtSize(n){
+  if(n===undefined || n===null) return '';
+  if(n < 1024) return n+' B';
+  if(n < 1048576) return (n/1024).toFixed(0)+' KB';
+  return (n/1048576).toFixed(1)+' MB';
+}
+
+// 压缩到 Canvas（返回 base64 dataUrl），失败返回空串
+function drawToDataUrl(img, tw, th, quality, mime){
+  var cv=document.createElement('canvas');
+  cv.width=tw; cv.height=th;
+  var ctx=cv.getContext('2d');
+  if(!ctx) return '';
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,tw,th);   // 透明 PNG 转 JPEG 时避免变黑
+  ctx.imageSmoothingEnabled=true;
+  if('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality='high';
+  try{ ctx.drawImage(img,0,0,tw,th); }catch(e){ return ''; }
+  var out='';
+  try{ out=cv.toDataURL(mime, quality); }catch(e){ out=''; }
+  if(!out || out.indexOf('data:'+mime)!==0) out='';
+  return out;
+}
+
+function compressImage(file){
+  return new Promise(function(resolve){
+    var url;
+    try{ url=URL.createObjectURL(file); }catch(e){ return resolve(null); }
+    var img=new Image();
+    img.onload=function(){
+      var w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+      // 单图已经是小幅、已压缩格式且没超过目标体积：直接用原图，避免二次编码损失
+      if(w<=IMG_MAX_EDGE && h<=IMG_MAX_EDGE && file.size<=600*1024 && /image\/(jpeg|webp)/.test(file.type||'')){
+        URL.revokeObjectURL(url);
+        var r=new FileReader();
+        r.onload=function(){ resolve({dataUrl:r.result, bytes:file.size, raw:true}); };
+        r.onerror=function(){ resolve(null); };
+        r.readAsDataURL(file);
+        return;
+      }
+      // 逐档降质重压：直到 base64 长度达标或用到最低质量
+      var scale=Math.min(1, IMG_MAX_EDGE/Math.max(w,h));
+      var tw=Math.max(1,Math.round(w*scale)), th=Math.max(1,Math.round(h*scale));
+      var out='', q=IMG_QUALITIES[0], usedMime='image/jpeg';
+      for(var i=0;i<IMG_QUALITIES.length;i++){
+        q=IMG_QUALITIES[i];
+        var wout=drawToDataUrl(img, tw, th, q, 'image/webp');
+        if(!wout) wout=drawToDataUrl(img, tw, th, q, 'image/jpeg');
+        if(!wout) break;
+        out=wout; usedMime='image/webp';
+        // WebP 是 jpeg 来源时 webp 可能打不开，若 webp 没产出来则退回 jpeg
+        if(out.indexOf('data:image/webp')!==0) usedMime='image/jpeg';
+        if(out.length <= IMG_TARGET_B64) break;
+        // 仍超目标，且画布已经不小，可再降一次长边继续压
+        if(i===IMG_QUALITIES.length-1 && tw>768){
+          tw=Math.round(tw*0.75); th=Math.round(th*0.75);
+          i--; // 用当前质量在更小画布上重压
+        }
+      }
+      URL.revokeObjectURL(url);
+      if(!out){ resolve(null); return; }
+      // 压缩后仍超后端兜底线就明确失败，不让超大图进请求体
+      if(out.length > BODY_MAX_CHARS){
+        resolve({tooBig:true, dataUrl:'', bytes:Math.round(out.length*0.75)});
+        return;
+      }
+      resolve({dataUrl:out, bytes:Math.round(out.length*0.75), raw:false, w:tw, h:th, ow:w, oh:h});
+    };
+    img.onerror=function(){ try{ URL.revokeObjectURL(url); }catch(e){} resolve(null); };
+    img.src=url;
+  });
+}
+
 function addFiles(files){
   var list=Array.prototype.slice.call(files||[]).filter(function(f){ return f && f.type && f.type.indexOf('image/')===0; });
   if(!list.length){ return; }
   list.forEach(function(f){
-    if(f.size > 12*1024*1024){ toast('图片过大（上限 12MB）'); return; }
-    var r=new FileReader();
-    r.onload=function(){ attachments.push({dataUrl:r.result,name:f.name||'图片'}); renderAtt(); updateSendState(); };
-    r.readAsDataURL(f);
+    if(f.size > IMG_MAX_FILE){ toast('图片过大（单张上限 20MB）'); return; }
+    var slot=attachments.length;
+    attachments.push({dataUrl:'', name:f.name||'图片', loading:true});
+    renderAtt(); updateSendState();
+    compressImage(f).then(function(res){
+      if(!res){ attachments.splice(slot,1); renderAtt(); updateSendState(); toast('这张图片读不出来'); return; }
+      if(res.tooBig){ attachments.splice(slot,1); renderAtt(); updateSendState(); toast('这张图片压缩后仍过大，已跳过（可先截图缩小再上传）'); return; }
+      attachments[slot]={ dataUrl:res.dataUrl, name:f.name||'图片', bytes:res.bytes,
+        w:res.w, h:res.h, raw:res.raw };
+      renderAtt(); updateSendState();
+    });
   });
 }
 function renderAtt(){
   attEl.innerHTML='';
   attachments.forEach(function(a,i){
-    var d=document.createElement('div'); d.className='att';
-    d.innerHTML='<img src="'+a.dataUrl+'" data-full="'+a.dataUrl+'" alt=""><button class="rm" title="移除">×</button>';
+    var d=document.createElement('div'); d.className='att'+(a.loading?' loading':'');
+    d.title=(a.name||'图片')+(a.bytes?(' · '+fmtSize(a.bytes)):'')+(a.w?(' · '+a.w+'×'+a.h):'');
+    d.innerHTML=(a.dataUrl? '<img src="'+a.dataUrl+'" data-full="'+a.dataUrl+'" alt="">' : '') +
+      '<button class="rm" title="移除">×</button>';
     d.querySelector('.rm').addEventListener('click', function(ev){
       ev.stopPropagation(); attachments.splice(i,1); renderAtt(); updateSendState();
     });
-    d.querySelector('img').addEventListener('click', function(){ openLightbox(a.dataUrl); });
+    var im=d.querySelector('img');
+    if(a.dataUrl){ im.addEventListener('click', function(){ openLightbox(a.dataUrl); }); }
     attEl.appendChild(d);
   });
 }
@@ -1407,11 +1541,18 @@ async function streamReply(history, text, imgs){
   }
 
   try{
+    var bodyStr=JSON.stringify({text:text, images:imgs, history:history, num_ctx:numCtx});
+    // 先自查体积：超过后端上限时服务端会直接断开连接，浏览器只能报 Failed to fetch
+    if(bodyStr.length > BODY_MAX_CHARS){
+      var e0=new Error('这次请求有 '+fmtSize(Math.round(bodyStr.length*0.9))+'（图片转码后会再膨胀），超过单次上限。');
+      e0.name='PayloadTooLarge';
+      throw e0;
+    }
     ctrl=new AbortController();
     var resp=await fetch('https://ai.lxhome.asia/chat', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({text:text, images:imgs, history:history, num_ctx:numCtx}),
+      body: bodyStr,
       signal: ctrl.signal
     });
     if(!resp.ok){
@@ -1446,9 +1587,14 @@ async function streamReply(history, text, imgs){
     if(err && err.name==='AbortError'){
       aborted=true;
       if(!acc.trim()) acc='*（已停止生成）*';
+    }else if(err && err.name==='PayloadTooLarge'){
+      acc='> **图片太多，已取消发送**\n>\n> '+err.message+'\n> 长边已自动压到 1568px，通常 1~3 张足够；也可以先截图缩小再发。';
+    }else if(err && (err.name==='TypeError' || /Failed to fetch|network|load failed/i.test(err.message||''))){
+      // 浏览器没能拿到响应：多半是请求体过大被服务端提前断开，或后端进程已退出
+      acc='> **连接被中断**（未能连上本地服务）\n>\n> 常见原因：图片/消息体积过大被提前断开、或后台 `app.py` 进程已停止。\n> 可以试试：减少图片数量、重新发送，或重启 `python app.py`。';
     }else{
       var msg=(err && err.message) || '未知错误';
-      acc = (acc? acc+'\n\n' : '') + '> **连接失败**：'+msg+'\n>\n> 请确认 Ollama 已启动（`ollama serve`），且已拉取 `'+MODEL_NAME+'` 模型。';
+      acc = (acc? acc+'\n\n' : '') + '> **请求失败**：'+msg+'\n>\n> 请确认 Ollama 已启动（`ollama serve`），且已拉取 `'+MODEL_NAME+'` 模型。';
     }
   }finally{
     if(timer){ clearTimeout(timer); timer=null; }
@@ -1809,3 +1955,205 @@ window.addEventListener('beforeunload', save);
 </script>
 </body>
 </html>
+"""
+
+# ---------- 后端 ----------
+@app.route("/")
+def index():
+    return render_template_string(PAGE)
+
+
+@app.route("/manifest.webmanifest")
+def manifest():
+    """让手机可以「添加到主屏幕」，像 App 一样全屏使用。"""
+    data = {
+        "name": "Qwen VL · 本地多模态助手",
+        "short_name": "Qwen VL",
+        "description": "本地运行的 Qwen2.5-VL 多模态对话助手",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": "#FFFFFF",
+        "theme_color": "#FFFFFF",
+        "icons": [
+            {"src": "/icon/512", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/icon/180", "sizes": "180x180", "type": "image/png"},
+        ],
+    }
+    return Response(
+        json.dumps(data, ensure_ascii=False),
+        mimetype="application/manifest+json",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.route("/icon/<int:size>")
+def icon(size):
+    """返回预生成的应用图标（缺失时回退到内联 SVG）。"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", f"icon-{size}.png")
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            return Response(f.read(), mimetype="image/png",
+                            headers={"Cache-Control": "public, max-age=604800"})
+    svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>"
+        "<rect width='100' height='100' rx='22' fill='#4D6BFE'/>"
+        "<path d='M50 20l7.6 20.4L78 48l-20.4 7.6L50 76l-7.6-20.4L22 48l20.4-7.6z' fill='white'/>"
+        "</svg>"
+    )
+    return Response(svg, mimetype="image/svg+xml")
+
+
+def _model_context_length(model):
+    """从 Ollama 读取模型的上下文窗口大小（带缓存）。"""
+    if model in _CTX_CACHE:
+        return _CTX_CACHE[model]
+    ctx = 32768
+    try:
+        r = requests.post(f"{OLLAMA_URL}/api/show", json={"model": model}, timeout=3)
+        info = r.json().get("model_info", {}) or {}
+        for k, v in info.items():
+            if k.endswith(".context_length") and isinstance(v, int) and v > 0:
+                ctx = v
+                break
+    except Exception:  # noqa: BLE001
+        pass
+    _CTX_CACHE[model] = ctx
+    return ctx
+
+
+@app.route("/api/status")
+def api_status():
+    """探测 Ollama 是否可用、模型是否已拉取，并返回上下文窗口信息。"""
+    try:
+        r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=2.5)
+        r.raise_for_status()
+        names = [m.get("name", "") for m in r.json().get("models", [])]
+        return jsonify({
+            "ok": True,
+            "model": MODEL,
+            "available": any(n == MODEL or n.split(":")[0] == MODEL for n in names),
+            "models": names,
+            "context_length": _model_context_length(MODEL),
+            "num_ctx_default": DEFAULT_NUM_CTX,
+            "system_chars": len(SYSTEM_PROMPT),
+        })
+    except Exception as e:  # noqa: BLE001
+        return jsonify({
+            "ok": False, "model": MODEL, "error": str(e),
+            "context_length": 32768, "num_ctx_default": DEFAULT_NUM_CTX,
+            "system_chars": len(SYSTEM_PROMPT),
+        })
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json(force=True)
+    user_text = (data.get("text") or "").strip()
+    images = data.get("images") or []
+    history = data.get("history") or []
+
+    if not user_text and not images:
+        return jsonify({"error": "请输入文字或附带图片"}), 400
+
+    # 上下文长度（前端滑杆传上来，做一次范围收敛）
+    try:
+        num_ctx = int(data.get("num_ctx") or DEFAULT_NUM_CTX)
+    except (TypeError, ValueError):
+        num_ctx = DEFAULT_NUM_CTX
+    num_ctx = max(MIN_NUM_CTX, min(MAX_NUM_CTX, num_ctx))
+
+    # 构建 Ollama 消息（qwen2.5vl 图片放 messages 的 images 数组）
+    content = user_text or ("请描述这张图片。" if images else "")
+    msg = {"role": "user", "content": content}
+    if images:
+        b64s = []
+        for im in images:
+            b = im.split(",", 1)[1] if "," in im else im
+            b64s.append(b)
+        # 体积兜底：过大的图既拖慢预填，也容易让 Ollama 直接报错
+        total_img = sum(len(b) for b in b64s)
+        if total_img > 18 * 1024 * 1024:
+            return jsonify({
+                "error": "图片总量过大（约 %.1f MB），请减少图片数量或降低分辨率"
+                % (total_img / 1048576)
+            }), 413
+        msg["images"] = b64s
+
+    # 多轮上下文（仅文本，避免每轮重复上传图片）
+    messages = []
+    for h in history[-12:]:
+        if not isinstance(h, dict):
+            continue
+        role = h.get("role")
+        text = (h.get("content") or "").strip()
+        if role in ("user", "assistant") and text:
+            messages.append({"role": role, "content": text})
+    while messages and messages[0]["role"] != "user":
+        messages.pop(0)
+    messages.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+
+    def generate():
+        usage = {}
+        t_start = time.perf_counter()
+        t_first = None
+        try:
+            resp = requests.post(
+                f"{OLLAMA_URL}/api/chat",
+                json={
+                    "model": MODEL,
+                    "messages": messages,
+                    "stream": True,
+                    "options": {"num_ctx": num_ctx},
+                },
+                stream=True, timeout=600,
+            )
+            resp.raise_for_status()
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                try:
+                    chunk = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if chunk.get("done"):
+                    eval_cnt = chunk.get("eval_count") or 0
+                    eval_ns = chunk.get("eval_duration") or 0
+                    prompt_ns = chunk.get("prompt_eval_duration") or 0
+                    load_ns = chunk.get("load_duration") or 0
+                    total_ns = chunk.get("total_duration") or 0
+                    usage = {
+                        "prompt": chunk.get("prompt_eval_count") or 0,
+                        "eval": eval_cnt,
+                        # 以下均为纳秒
+                        "eval_ns": eval_ns,
+                        "prompt_ns": prompt_ns,
+                        "load_ns": load_ns,
+                        "total_ns": total_ns,
+                        "num_ctx": num_ctx,
+                        # 生成速度 / 首字延迟（秒），后端先算好，前端直接用
+                        "tps": round(eval_cnt / (eval_ns / 1e9), 1) if eval_ns and eval_cnt else 0,
+                        "ttft": round((prompt_ns + load_ns) / 1e9, 2) if prompt_ns else 0,
+                        # 墙钟兜底（Ollama 某些版本不返回 *_duration）
+                        "wall": round(time.perf_counter() - t_start, 2),
+                        "ttft_wall": round((t_first or time.perf_counter()) - t_start, 2),
+                    }
+                delta = chunk.get("message", {}).get("content", "")
+                if delta:
+                    if t_first is None:
+                        t_first = time.perf_counter()
+                    yield delta
+        except requests.exceptions.RequestException as e:
+            yield f"\n\n> **调用 Ollama 失败**：{e}\n>\n> 请确认 Ollama 已启动（`ollama serve`）。"
+        finally:
+            if usage:
+                yield USAGE_MARK + json.dumps(usage)
+
+    return Response(
+        generate(),
+        mimetype="text/plain; charset=utf-8",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
