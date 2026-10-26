@@ -294,7 +294,7 @@
     if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) return;
     let ws;
     try {
-      ws = new WebSocket(wsEndpoint());
+      ws = window.openSocket ? window.openSocket(wsEndpoint()) : new WebSocket(wsEndpoint());
     } catch {
       return;
     }
@@ -304,6 +304,10 @@
       connected = true;
       retry = 0;
       updateConnState();
+      if (ws.transport === 'sse' && !window.__hubCompatWarned) {
+        window.__hubCompatWarned = true;
+        toast('当前浏览器限制直连，已切换兼容连接');
+      }
       ws.send(JSON.stringify({ t: 'hello', id: me.id, nick: me.nick }));
       syncWatch();
       const pending = queue.splice(0);

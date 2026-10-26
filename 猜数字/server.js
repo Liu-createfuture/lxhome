@@ -16,7 +16,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const ROOT_DIR = __dirname;
 
 /* 只对外暴露这几个静态文件，避免把 server.js / package.json 等源码暴露出去 */
-const STATIC_FILES = new Set(['index.html', 'styles.css', 'app.js', 'config.js']);
+const STATIC_FILES = new Set(['index.html', 'styles.css', 'app.js', 'config.js', 'net-lite.js']);
 
 const MAX_GUESSES = 60;              // 单人单局猜测上限（安全阀）
 const RECONNECT_GRACE_MS = 90 * 1000; // 掉线后保留席位时长
@@ -88,6 +88,87 @@ const server = http.createServer((req, res) => {
         ...social.stats()
       })
     );
+    return;
+  }
+
+  /* ---- SSE 兼容通道：微信等屏蔽 WebSocket 的 WebView 走这条 ---- */
+  if (req.method === 'GET' && url.pathname.endsWith('/api/sse')) {
+    const sid = String(url.searchParams.get('sid') || '').slice(0, 40);
+    if (!/^[A-Za-z0-9_-]{6,40}$/.test(sid)) {
+      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8', ...cors });
+      res.end('bad sid');
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      ...cors
+    });
+    res.write('retry: 2000\n\n');
+
+    const sock = new SseSocket((str) => res.write(`data: ${str}\n\n`));
+    sseSockets.set(sid, sock);
+    res.write(`data: ${JSON.stringify({ t: 'ready', sid })}\n\n`);
+
+    const ping = setInterval(() => {
+      try {
+        res.write(': ping\n\n');
+      } catch {
+        /* ignore */
+      }
+    }, 25000);
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      clearInterval(ping);
+      if (sseSockets.get(sid) === sock) sseSockets.delete(sid);
+      sock.close();
+    };
+    req.on('close', cleanup);
+    res.on('close', cleanup);
+
+    registerConn(sock);
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname.endsWith('/api/post')) {
+    let body = '';
+    let tooBig = false;
+    req.on('data', (chunk) => {
+      body += chunk;
+      if (body.length > 64 * 1024) {
+        tooBig = true;
+        req.destroy();
+      }
+    });
+    req.on('end', () => {
+      if (tooBig) return;
+      let payload = null;
+      try {
+        payload = JSON.parse(body);
+      } catch {
+        /* ignore */
+      }
+      const headers = {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        ...cors
+      };
+      const sock = payload ? sseSockets.get(String(payload.sid || '')) : null;
+      if (!sock || sock.readyState !== 1) {
+        res.writeHead(404, headers);
+        res.end('{"ok":false}');
+        return;
+      }
+      sock.emit('message', JSON.stringify(payload.msg || {}));
+      res.writeHead(200, headers);
+      res.end('{"ok":true}');
+    });
     return;
   }
 
@@ -395,13 +476,44 @@ function bindPlayer(conn, room, player, ws) {
 }
 
 /* ------------------------------------------------------------------ */
-/* WebSocket                                                           */
+/* 连接处理（WebSocket 与 SSE 兼容通道共用）                            */
 /* ------------------------------------------------------------------ */
 
-const wss = new WebSocketServer({ server });
+const sseSockets = new Map();
 
-wss.on('connection', (ws) => {
-  const conn = { ws, room: null, player: null, social: null, watch: new Set() };
+class SseSocket extends require('events').EventEmitter {
+  constructor(write) {
+    super();
+    this.readyState = 1;
+    this._write = write;
+  }
+  send(str) {
+    if (this.readyState !== 1) return;
+    try {
+      this._write(str);
+    } catch {
+      this.close();
+    }
+  }
+  ping() {
+    /* SSE 用注释行保活，这里无需额外动作 */
+  }
+  close() {
+    if (this.readyState === 3) return;
+    this.readyState = 3;
+    this.emit('close');
+  }
+  terminate() {
+    this.close();
+  }
+}
+
+function makeConn(ws) {
+  return { ws, room: null, player: null, social: null, watch: new Set() };
+}
+
+function registerConn(ws) {
+  const conn = makeConn(ws);
   ws.isAlive = true;
   ws.on('pong', () => {
     ws.isAlive = true;
@@ -544,7 +656,11 @@ wss.on('connection', (ws) => {
     detach(conn);
   });
   ws.on('error', () => {});
-});
+  return conn;
+}
+
+const wss = new WebSocketServer({ server });
+wss.on('connection', (ws) => registerConn(ws));
 
 function playersConnected(room) {
   return room.players.filter((p) => p.connected).length;

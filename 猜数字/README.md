@@ -88,15 +88,30 @@ window.GN_CONFIG = {
 **联机**：4 位房间号 / 邀请链接 → 房主开始 → 3 秒倒计时同题抢答，先猜中者胜；
 实时显示对手已猜次数；掉线 90 秒内可凭席位 token 回到原局，超时判负。
 
+## 连接方式（微信内置浏览器兼容）
+
+客户端默认走 WebSocket。微信内置浏览器（安卓 X5 / iOS WKWebView）常把 WebSocket 握手静默丢掉——
+不报错、不触发 onerror，页面表现就是「点了没反应」。
+
+`net-lite.js` 处理了这件事：WebSocket 4 秒内没连上、握手失败、或连上即断开时，
+自动切换到 **SSE（服务端下行）+ POST（客户端上行）** 的兼容通道，
+对外暴露和 WebSocket 一样的事件接口，业务代码无感。
+
+- 想确认自己的环境是否被限制：链接后加 `?forceSse=1`（如 `/猜数字/?forceSse=1`），
+  强制走兼容通道；能正常建房就说明这个环境在拦 WebSocket
+- 兼容通道同样支撑大厅的好友、在线状态、聊天与邀请
+- 两条通道跑的是同一套房间/社交逻辑（服务端 `registerConn` 抽出来了）
+
 ## 测试
 
 ```bash
 # 终端 1
 GN_SECRET=8374 PORT=3100 node server.js
 
-# 终端 2：对局流程 / 大厅社交层
+# 终端 2：对局流程 / 大厅社交层 / 兼容通道
 GN_SECRET=8374 node test/e2e.js
 node test/social-e2e.js
+node test/sse-e2e.js
 ```
 
 线上冒烟（不校验固定答案）：

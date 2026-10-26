@@ -617,7 +617,8 @@
 
     let ws;
     try {
-      ws = new WebSocket(wsEndpoint());
+// 优先 WebSocket，环境不支持时自动走兼容通道
+      ws = window.openSocket ? window.openSocket(wsEndpoint()) : new WebSocket(wsEndpoint());
     } catch {
       return;
     }
@@ -626,6 +627,10 @@
     ws.addEventListener('open', () => {
       net.connected = true;
       net.retry = 0;
+      if (ws.transport === 'sse' && !net.compatWarned) {
+        net.compatWarned = true;
+        toast('当前浏览器限制直连，已切换兼容连接');
+      }
       if (HUB) {
         try {
           ws.send(JSON.stringify({ t: 'hello', id: HUB.id, nick: HUB.nick }));
