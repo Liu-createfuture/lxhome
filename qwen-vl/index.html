@@ -705,6 +705,7 @@ body.sb-collapsed #sidebar{flex-basis:0;opacity:0;pointer-events:none}
 
 <div id="main" class="empty">
   <header id="topbar">
+    <a class="lx-back-top" href="../" aria-label="返回游戏大厅">← 大厅</a>
     <button class="tb-icon" id="toggleBtn" title="收起/展开侧边栏">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/></svg>
     </button>
@@ -2103,5 +2104,12 @@ setTimeout(function(){ ta.focus(); }, 60);
 window.addEventListener('beforeunload', save);
 })();
 </script>
+
+
+
+<style>
+  .lx-back-top{display:inline-flex;align-items:center;height:32px;padding:0 11px;margin-right:6px;border-radius:9px;border:1px solid rgba(20,22,31,.1);background:#fff;color:#4a5064;font:600 12.5px/1 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;text-decoration:none;transition:.15s;flex:0 0 auto}
+  .lx-back-top:hover{color:#4f46e5;border-color:rgba(79,70,229,.4)}
+</style>
 </body>
 </html>

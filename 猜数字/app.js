@@ -1339,6 +1339,12 @@
 
     newSolo();
 
+    /* 单独部署（页面就在服务根目录）时没有大厅可返回，隐藏返回按钮 */
+    const backHome = $('#backHome');
+    if (backHome && (location.pathname === '/' || location.pathname === '')) {
+      backHome.classList.add('hidden');
+    }
+
     const params = new URLSearchParams(location.search);
     const roomParam = (params.get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
     const inviteTo = (params.get('invite') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16);
