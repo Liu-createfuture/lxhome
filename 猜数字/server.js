@@ -9,10 +9,13 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { WebSocketServer } = require('ws');
+const { WebSocketServer } = require('./lib/ws');
 
 const PORT = Number(process.env.PORT) || 3000;
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const ROOT_DIR = __dirname;
+
+/* 只对外暴露这几个静态文件，避免把 server.js / package.json 等源码暴露出去 */
+const STATIC_FILES = new Set(['index.html', 'styles.css', 'app.js', 'config.js']);
 
 const MAX_GUESSES = 60;              // 单人单局猜测上限（安全阀）
 const RECONNECT_GRACE_MS = 90 * 1000; // 掉线后保留席位时长
@@ -54,24 +57,33 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (url.pathname === '/api/stats') {
+  const cors = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, cors);
+    res.end();
+    return;
+  }
+
+  /* 反向代理可能保留路径前缀，用后缀匹配 */
+  if (url.pathname === '/api/stats' || url.pathname.endsWith('/api/stats')) {
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store'
+      'Cache-Control': 'no-store',
+      ...cors
     });
     res.end(JSON.stringify({ rooms: rooms.size, online: onlineCount() }));
     return;
   }
 
-  let pathname = decodeURIComponent(url.pathname);
-  if (pathname === '/' || pathname === '') pathname = '/index.html';
-
-  const safePath = path.normalize(pathname).replace(/^([/\\])+/, '');
-  const filePath = path.join(PUBLIC_DIR, safePath);
-
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('403 Forbidden');
+  const filePath = resolveStaticFile(decodeURIComponent(url.pathname));
+  if (!filePath) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('404 Not Found');
     return;
   }
 
@@ -83,11 +95,21 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache',
+      ...cors
     });
     res.end(buf);
   });
 });
+
+function resolveStaticFile(pathname) {
+  const clean = pathname.replace(/^\/+/, '').replace(/\\/g, '/');
+  const candidate = clean === '' ? 'index.html' : clean;
+  if (STATIC_FILES.has(candidate)) return path.join(ROOT_DIR, candidate);
+  const base = candidate.split('/').pop();
+  if (STATIC_FILES.has(base)) return path.join(ROOT_DIR, base);
+  return null;
+}
 
 /* ------------------------------------------------------------------ */
 /* 游戏工具                                                            */
@@ -538,7 +560,7 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000).unref?.();
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   const nets = require('os').networkInterfaces();
   const lan = [];
   for (const list of Object.values(nets)) {

@@ -86,6 +86,48 @@
   const SOUND_KEY = 'gn.sound';
 
   /* ---------------------------------------------------------
+     联机服务地址
+     本机/局域网直接访问 node server.js → 同源；
+     页面部署在静态站时 → 用 config.js 里配置的公网服务地址。
+     --------------------------------------------------------- */
+  const IS_LOCAL_HOST =
+    location.protocol === 'file:' ||
+    /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(location.hostname) ||
+    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
+
+  const REMOTE_BASE = String((window.GN_CONFIG && window.GN_CONFIG.server) || '')
+    .trim()
+    .replace(/\/+$/, '');
+
+  const SHARE_CODE = String((window.GN_CONFIG && window.GN_CONFIG.sharecode) || '').trim();
+  const SHARE_QS = SHARE_CODE ? `?sharecode=${encodeURIComponent(SHARE_CODE)}` : '';
+
+  const SERVER_BASE = IS_LOCAL_HOST ? '' : REMOTE_BASE;
+  const STATS_URL = SERVER_BASE ? `${SERVER_BASE}/api/stats${SHARE_QS}` : '/api/stats';
+
+  function wsEndpoint() {
+    if (SERVER_BASE) return `${SERVER_BASE.replace(/^http/i, 'ws')}/${SHARE_QS}`;
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${location.host}/`;
+  }
+
+  /* 生成当前页面的链接，保留访问码，可附加查询参数 */
+  function withQuery(params) {
+    const url = new URL(location.href);
+    url.pathname = url.pathname.replace(/index\.html$/i, '');
+    url.search = '';
+    const sc = new URLSearchParams(location.search).get('sharecode') || SHARE_CODE;
+    if (sc) url.searchParams.set('sharecode', sc);
+    Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+    return url.toString();
+  }
+
+  /* 当前页面的分享地址（去重 query / index.html） */
+  function pageUrl() {
+    return withQuery({});
+  }
+
+  /* ---------------------------------------------------------
      音效
      --------------------------------------------------------- */
   let audioCtx = null;
@@ -544,10 +586,9 @@
   function connect() {
     if (net.ws && (net.ws.readyState === WebSocket.CONNECTING || net.ws.readyState === WebSocket.OPEN)) return;
 
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     let ws;
     try {
-      ws = new WebSocket(`${proto}//${location.host}`);
+      ws = new WebSocket(wsEndpoint());
     } catch {
       return;
     }
@@ -610,7 +651,7 @@
       const key = `gn.mp.${msg.code}`;
       if (seat.get(key) !== msg.token) seat.set(key, msg.token);
       if (location.search.indexOf('room=') === -1) {
-        history.replaceState(null, '', `?room=${msg.code}`);
+        history.replaceState(null, '', withQuery({ room: msg.code }));
       }
       return;
     }
@@ -929,7 +970,7 @@
 
   $('#btnCopyLink').addEventListener('click', () => {
     const code = net.room ? net.room.code : '';
-    copyText(`${location.origin}/?room=${code}`, '邀请链接已复制');
+    copyText(withQuery({ room: code }), '邀请链接已复制');
   });
 
   $('#btnLeave').addEventListener('click', () => {
@@ -953,7 +994,7 @@
       clearTimeout(net.retryTimer);
       net.retryTimer = null;
     }
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', withQuery({}));
   }
 
   function copyText(text, okMsg) {
@@ -1185,7 +1226,7 @@
      在线人数
      --------------------------------------------------------- */
   function refreshOnlineCount() {
-    fetch('/api/stats')
+    fetch(STATS_URL)
       .then((r) => r.json())
       .then((d) => {
         $('#onlineCount').textContent = d.online || 0;
