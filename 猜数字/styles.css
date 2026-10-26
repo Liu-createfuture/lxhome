@@ -1262,11 +1262,80 @@ body::before {
   font-family: var(--mono);
 }
 
+/* ---------------- 好友邀请横幅 ---------------- */
+
+.invite-banner {
+  position: fixed;
+  top: 78px;
+  left: 50%;
+  transform: translate(-50%, -18px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(79, 70, 229, 0.3);
+  box-shadow: 0 24px 50px -24px rgba(79, 70, 229, 0.6);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  max-width: calc(100vw - 32px);
+}
+.invite-banner.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+.ib-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  flex: 0 0 auto;
+}
+.ib-text {
+  font-size: 13px;
+}
+.ib-text b {
+  font-weight: 600;
+}
+.ib-actions {
+  display: flex;
+  gap: 8px;
+}
+.ib-accept {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font: 600 12.5px var(--font);
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ib-ignore {
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: 500 12.5px var(--font);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* ---------------- toast ---------------- */
 
 .toast-stack {
   position: fixed;
-  top: 78px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 80;

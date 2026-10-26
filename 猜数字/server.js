@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('./lib/ws');
+const { createSocial } = require('./lib/social');
 
 const PORT = Number(process.env.PORT) || 3000;
 const ROOT_DIR = __dirname;
@@ -39,6 +40,9 @@ const MIME = {
 };
 
 const rooms = new Map();
+
+/* 大厅社交层（好友在线状态 / 私聊 / 邀请） */
+const social = createSocial(sendTo);
 
 function onlineCount() {
   let n = 0;
@@ -76,7 +80,14 @@ const server = http.createServer((req, res) => {
       'Cache-Control': 'no-store',
       ...cors
     });
-    res.end(JSON.stringify({ rooms: rooms.size, online: onlineCount() }));
+    res.end(
+      JSON.stringify({
+        rooms: rooms.size,
+        online: onlineCount(),
+        players: onlineCount(),
+        ...social.stats()
+      })
+    );
     return;
   }
 
@@ -390,7 +401,7 @@ function bindPlayer(conn, room, player, ws) {
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
-  const conn = { room: null, player: null };
+  const conn = { ws, room: null, player: null, social: null, watch: new Set() };
   ws.isAlive = true;
   ws.on('pong', () => {
     ws.isAlive = true;
@@ -406,6 +417,9 @@ wss.on('connection', (ws) => {
       return;
     }
     if (!msg || typeof msg.t !== 'string') return;
+
+    /* 大厅社交：身份、在线状态、私聊、邀请 */
+    if (social.handle(conn, msg)) return;
 
     /* 创建房间 */
     if (msg.t === 'create') {
@@ -525,7 +539,10 @@ wss.on('connection', (ws) => {
     }
   });
 
-  ws.on('close', () => detach(conn));
+  ws.on('close', () => {
+    social.unregister(conn);
+    detach(conn);
+  });
   ws.on('error', () => {});
 });
 

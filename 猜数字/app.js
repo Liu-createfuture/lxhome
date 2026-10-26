@@ -87,14 +87,9 @@
 
   /* ---------------------------------------------------------
      联机服务地址
-     本机/局域网直接访问 node server.js → 同源；
-     页面部署在静态站时 → 用 config.js 里配置的公网服务地址。
+     config.js 里配置了 server 就用它（页面可能部署在静态站，后端在别处）；
+     留空则与页面同源（用 node server.js 直接打开时）。
      --------------------------------------------------------- */
-  const IS_LOCAL_HOST =
-    location.protocol === 'file:' ||
-    /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(location.hostname) ||
-    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
-
   const REMOTE_BASE = String((window.GN_CONFIG && window.GN_CONFIG.server) || '')
     .trim()
     .replace(/\/+$/, '');
@@ -102,7 +97,7 @@
   const SHARE_CODE = String((window.GN_CONFIG && window.GN_CONFIG.sharecode) || '').trim();
   const SHARE_QS = SHARE_CODE ? `?sharecode=${encodeURIComponent(SHARE_CODE)}` : '';
 
-  const SERVER_BASE = IS_LOCAL_HOST ? '' : REMOTE_BASE;
+  const SERVER_BASE = REMOTE_BASE;
   const STATS_URL = SERVER_BASE ? `${SERVER_BASE}/api/stats${SHARE_QS}` : '/api/stats';
 
   function wsEndpoint() {
@@ -112,11 +107,20 @@
   }
 
   /* 生成当前页面的链接，保留访问码，可附加查询参数 */
+  /* 页面本身若就部署在后端域名上，分享链接要带上访问码 */
+  function pageShareCode() {
+    const fromUrl = new URLSearchParams(location.search).get('sharecode');
+    if (fromUrl) return fromUrl;
+    if (!SERVER_BASE) return '';
+    const host = SERVER_BASE.replace(/^https?:\/\//i, '').split('/')[0];
+    return host === location.host ? SHARE_CODE : '';
+  }
+
   function withQuery(params) {
     const url = new URL(location.href);
     url.pathname = url.pathname.replace(/index\.html$/i, '');
     url.search = '';
-    const sc = new URLSearchParams(location.search).get('sharecode') || SHARE_CODE;
+    const sc = pageShareCode();
     if (sc) url.searchParams.set('sharecode', sc);
     Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, String(v)));
     return url.toString();
@@ -125,6 +129,30 @@
   /* 当前页面的分享地址（去重 query / index.html） */
   function pageUrl() {
     return withQuery({});
+  }
+
+  /* ---------------------------------------------------------
+     大厅身份：与游戏大厅共用同一个 id，用于在线状态与好友邀请
+     --------------------------------------------------------- */
+  function hubIdentity() {
+    try {
+      const raw = localStorage.getItem('hub.me.v1');
+      if (!raw) return null;
+      const m = JSON.parse(raw);
+      if (m && typeof m.id === 'string' && /^[A-Z0-9]{4,16}$/.test(m.id)) {
+        return { id: m.id, nick: String(m.nick || '玩家').slice(0, 12) };
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+  const HUB = hubIdentity();
+
+  function preferredNick() {
+    const typed = (nickInput && nickInput.value ? nickInput.value : '').trim();
+    if (typed) return typed;
+    return HUB ? HUB.nick : '玩家';
   }
 
   /* ---------------------------------------------------------
@@ -567,7 +595,8 @@
     countdownDeadline: 0,
     lastCountdownSec: null,
     lastStatus: '',
-    roundStartAt: 0
+    roundStartAt: 0,
+    inviteTo: null
   };
 
   const nickInput = $('#nickInput');
@@ -597,6 +626,13 @@
     ws.addEventListener('open', () => {
       net.connected = true;
       net.retry = 0;
+      if (HUB) {
+        try {
+          ws.send(JSON.stringify({ t: 'hello', id: HUB.id, nick: HUB.nick }));
+        } catch {
+          /* ignore */
+        }
+      }
       const queued = net.pending.splice(0);
       queued.forEach((m) => {
         try {
@@ -644,6 +680,11 @@
   }
 
   function handleMessage(msg) {
+    if (msg.t === 'invite') {
+      showGameInvite(msg);
+      return;
+    }
+
     if (msg.t === 'joined') {
       net.code = msg.code;
       net.token = msg.token;
@@ -652,6 +693,11 @@
       if (seat.get(key) !== msg.token) seat.set(key, msg.token);
       if (location.search.indexOf('room=') === -1) {
         history.replaceState(null, '', withQuery({ room: msg.code }));
+      }
+      if (net.inviteTo) {
+        const to = net.inviteTo;
+        net.inviteTo = null;
+        send({ t: 'invite', to, code: msg.code, game: 'guess', gameName: '猜数字' });
       }
       return;
     }
@@ -699,6 +745,28 @@
       }
       toast(msg.msg, 'error');
     }
+  }
+
+  /* ------------------ 好友邀请 ------------------ */
+
+  function showGameInvite(msg) {
+    const banner = $('#inviteBanner');
+    if (!banner) return;
+    const nick = (msg.from && msg.from.nick) || '好友';
+    $('#ibFrom').textContent = nick;
+    $('#ibAvatar').textContent = nick.slice(0, 1);
+    const code = String(msg.code || '').toUpperCase();
+    banner.classList.add('show');
+    playSound('tick');
+
+    $('#ibAccept').onclick = () => {
+      banner.classList.remove('show');
+      location.href = withQuery({ room: code });
+    };
+    $('#ibIgnore').onclick = () => banner.classList.remove('show');
+
+    clearTimeout(showGameInvite._timer);
+    showGameInvite._timer = setTimeout(() => banner.classList.remove('show'), 30000);
   }
 
   /* ------------------ 渲染：房间 ------------------ */
@@ -1273,8 +1341,17 @@
 
     const params = new URLSearchParams(location.search);
     const roomParam = (params.get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    const inviteTo = (params.get('invite') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16);
 
-    if (roomParam) {
+    if (!nickInput.value && HUB) nickInput.value = HUB.nick;
+
+    if (inviteTo) {
+      /* 从大厅点「一起玩」过来：自动开房，再把房间号推给好友 */
+      setMode('online');
+      net.inviteTo = inviteTo;
+      send({ t: 'create', nick: preferredNick() });
+      toast('正在开房间，准备邀请好友…');
+    } else if (roomParam) {
       setMode('online');
       codeInput.value = roomParam;
       const token = seat.get(`gn.mp.${roomParam}`);
@@ -1284,9 +1361,9 @@
         send({ t: 'rejoin', code: roomParam, token });
         toast('正在回到房间 ' + roomParam);
       } else {
-        setTimeout(() => {
-          nickInput.focus();
-        }, 200);
+        /* 被好友邀请进来：直接进房间，不用再点一次加入 */
+        send({ t: 'join', code: roomParam, nick: preferredNick() });
+        toast('正在加入房间 ' + roomParam);
       }
     }
 

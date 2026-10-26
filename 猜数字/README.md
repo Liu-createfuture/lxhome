@@ -1,18 +1,23 @@
-# 猜数字 · 4 位 1A2B
+# 猜数字 · 4 位 1A2B + 游戏大厅
 
-一个双模式猜数字游戏：**单人练习** + **联机对战房间**。前端是纯静态页面，后端是单文件的 Node 服务，
-**零第三方依赖**（WebSocket 由 `lib/ws.js` 用 Node 内置模块实现），`node server.js` 即可跑。
+站点首页是**游戏大厅**（好友、聊天、邀请），第一款游戏是猜数字。
+前端纯静态，后端是单文件 Node 服务，**零第三方依赖**，`node server.js` 即可跑。
 
 ## 目录结构
 
 ```
-index.html      页面结构
-styles.css      样式
-app.js          单人逻辑 + 联机客户端
-config.js       联机服务地址（部署到静态站时改这里）
-lib/ws.js       极简 WebSocket 服务端（Node 内置模块实现）
-server.js       静态文件服务 + 房间管理 + 判分
-test/e2e.js     联机端到端测试（Node 内置 WebSocket 客户端）
+../index.html        游戏大厅（好友列表 / 聊天 / 邀请）
+../lobby.css         大厅样式
+../lobby.js          大厅逻辑
+index.html           猜数字页面
+styles.css           猜数字样式
+app.js               猜数字逻辑（单人 + 联机客户端）
+config.js            联机服务地址（部署到静态站时改这里）
+lib/ws.js            极简 WebSocket 服务端（Node 内置模块实现）
+lib/social.js        大厅社交层：身份 / 在线状态 / 私聊 / 邀请
+server.js            静态文件服务 + 房间管理 + 判分
+test/e2e.js          联机对局端到端测试
+test/social-e2e.js   大厅社交层端到端测试
 ```
 
 ## 本地运行
@@ -22,33 +27,53 @@ node server.js          # 默认 http://localhost:3000
 PORT=8080 node server.js
 ```
 
-启动后终端会打印局域网地址，同一 WiFi 下用手机打开即可对战。
 无需 `npm install`（项目没有任何依赖）。
 
-## 部署到公网
+想把大厅也一起在本机看，用任意静态服务器托管仓库根目录（大厅在 `/`，游戏在 `/猜数字/`），
+并让 `config.js` 指向这个 Node 服务的地址即可。
 
-游戏分两部分，可以分开放在不同地方：
+## 部署
 
 | 部分 | 内容 | 要求 |
 | --- | --- | --- |
-| 前端 | `index.html` / `styles.css` / `app.js` / `config.js` | 任意静态托管（Cloudflare Pages、Nginx…），目录名保证 `/猜数字/` 能访问到 `index.html` |
-| 后端 | `server.js` + `lib/ws.js` | 支持长连接的 Node 环境（≥18），监听 `PORT` 并绑定 `0.0.0.0` |
+| 前端 | `index.html` `lobby.*` + `猜数字/` 整个目录 | 任意静态托管；`/猜数字/` 要能访问到 `index.html` |
+| 后端 | `server.js` + `lib/` | 支持长连接的 Node（≥18），监听 `PORT`、绑定 `0.0.0.0` |
 
-前端通过 `config.js` 找后端：
+后端地址写在 `猜数字/config.js`（大厅也读同一份）：
 
 ```js
 window.GN_CONFIG = {
-  server: 'https://your-backend.example.com', // 联机服务地址，留空=与页面同源
-  sharecode: ''                                // 托管平台要求访问码时填这里，自建服务留空
+  server: 'https://your-backend.example.com', // 留空 = 与页面同源
+  sharecode: ''                               // 托管平台要访问码时填这里
 };
 ```
 
-- 在 `localhost` / 局域网 IP 打开时，会自动走后端同源，不受 `config.js` 影响
-- 换后端只改这两个值，页面代码不用动
-- 后端已对 `/api/stats` 开放 CORS，跨域可用；WebSocket 不受同源限制
+- 换后端只改这两个值，前后端代码都不用动
+- 后端对 `/api/stats` 开放 CORS；WebSocket 不受同源限制
+- 想完全本地玩，把 `server` 清空即可
 
-当前现网配置：前端静态页放在 lxhome 站点，后端由 WorkBuddy 云托管
-（`https://guess-number-1a2b.app.workbuddy.host`，带 sharecode 访问码）。
+当前现网：前端在 lxhome 站点，后端在 WorkBuddy 云托管
+（`https://guess-number-1a2b.app.workbuddy.host`）。
+
+## 游戏大厅
+
+- **身份**：首次打开自动生成 8 位号码，存在浏览器本地（`hub.me.v1`），昵称可改
+- **加好友**：把号码发给对方，输入号码即添加（单向添加即可聊天）
+- **在线状态**：客户端订阅好友列表，服务端推送上下线、昵称变更
+- **聊天**：1 对 1，记录存在各自浏览器（`hub.chat.v1.<id>`）；未读数、送达状态、正在输入
+- **邀请**：好友聊天里点「一起玩」→ 自动开房并把房间号推给对方 → 对方在大厅收到邀请卡片 →
+  接受后直接进同一个房间
+- **加新游戏**：大厅的 `GAMES` 数组加一条即可（`href` 指向新游戏目录）
+
+设计取舍：**好友关系与聊天记录只存在浏览器**，服务端只做在线路由 + 离线消息暂存（内存，40 条）。
+所以服务重启不会丢好友和聊天，代价是重启后尚未送达的离线消息会丢。
+
+### 社交协议
+
+客户端 → 服务端：`hello` `profile` `watch` `dm` `typing` `invite` `invite-reply`
+
+服务端 → 客户端：`hello-ok` `presence-list` `presence` `dm` `dm-ack` `typing`
+`invite` `invite-sent` `invite-fail` `invite-reply`
 
 ## 玩法
 
@@ -58,29 +83,31 @@ window.GN_CONFIG = {
 - **B**：数字对、位置不对
 - `4A0B` 即破解成功
 
-**单人**：实时显示次数、用时、以及「剩余可能」（按历史反馈推算还有多少种答案）；记录存 localStorage，可展开看每次猜测。
+**单人**：实时显示次数、用时、以及「剩余可能」（按历史反馈推算还有多少种答案）；记录存本地。
 
-**联机**：创建房间 → 4 位房间号 / 邀请链接 → 两人就位后房主开始 → 3 秒倒计时同题抢答，
-先猜中者胜；实时显示对手已猜次数；掉线 90 秒内可凭席位 token 回到原局，超时判负。
+**联机**：4 位房间号 / 邀请链接 → 房主开始 → 3 秒倒计时同题抢答，先猜中者胜；
+实时显示对手已猜次数；掉线 90 秒内可凭席位 token 回到原局，超时判负。
 
 ## 测试
 
 ```bash
-# 终端 1：固定答案起一个测试实例
+# 终端 1
 GN_SECRET=8374 PORT=3100 node server.js
 
-# 终端 2：跑完整联机流程（建房、加入、判分、结算、再来一局、重连、离开）
+# 终端 2：对局流程 / 大厅社交层
 GN_SECRET=8374 node test/e2e.js
+node test/social-e2e.js
 ```
 
-线上冒烟测试（不校验固定答案）：
+线上冒烟（不校验固定答案）：
 
 ```bash
-WS_URL="wss://<你的服务地址>/?sharecode=<访问码>" node test/e2e.js
+WS_URL="wss://<服务地址>/?sharecode=<访问码>" node test/e2e.js
 ```
 
 ## 说明
 
-- 房间数据在内存里，重启服务即清空；单房间上限 2 人
-- 联机时答案只存在服务端，前端拿不到，判分也在服务端完成
+- 房间数据在内存里，重启即清空；单房间上限 2 人
+- 联机时答案只存在服务端，判分在服务端完成
 - `GN_SECRET` 环境变量可固定答案，仅供本地测试
+- 社交层没有账号密码体系：知道号码就能给对方发消息，适合熟人小范围使用

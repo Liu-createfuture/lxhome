@@ -2,107 +2,134 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>我的项目导航</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      body {
-        font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-        min-height: 100vh;
-        background: #f5f6fa;
-        color: #2c3e50;
-        padding: 40px 20px;
-      }
-      .wrap {
-        max-width: 1000px;
-        margin: 0 auto;
-      }
-      h1 {
-        font-size: 28px;
-        margin-bottom: 8px;
-      }
-      .sub {
-        color: #7f8c8d;
-        margin-bottom: 32px;
-        font-size: 14px;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
-      }
-      .card {
-        background: #fff;
-        border-radius: 12px;
-        padding: 24px;
-        text-decoration: none;
-        color: inherit;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        transition:
-          transform 0.15s,
-          box-shadow 0.15s;
-        display: block;
-        border-left: 4px solid #3498db;
-      }
-      .card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-      }
-      .card h2 {
-        font-size: 18px;
-        margin-bottom: 8px;
-      }
-      .card p {
-        font-size: 13px;
-        color: #7f8c8d;
-        line-height: 1.6;
-      }
-      .tag {
-        display: inline-block;
-        font-size: 11px;
-        background: #ecf0f1;
-        color: #2c3e50;
-        padding: 2px 8px;
-        border-radius: 4px;
-        margin-top: 12px;
-      }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#eef1f8" />
+    <title>游戏大厅</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f46e5'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='white'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="lobby.css" />
   </head>
   <body>
-    <div class="wrap">
-      <h1>我的项目导航</h1>
-      <p class="sub">共 5 个项目 · 自动扫描生成</p>
-      <div class="grid">
-        <a class="card" href="/猜数字/">
-          <h2>🎯 猜数字</h2>
-          <p>4 位 1A2B 猜数字 · 单人练习 + 联机对战房间</p>
-          <span class="tag">游戏</span>
-        </a>
-        <a class="card" href="/医院导航/">
-          <h2>🌐 医院导航</h2>
-          <p>暂无描述，点击进入项目。</p>
-          <span class="tag">Three.js</span>
-        </a>
-        <a class="card" href="/宝可梦/">
-          <h2>🎮 宝可梦</h2>
-          <p>宝可梦：森之秘语</p>
-          <span class="tag">游戏</span>
-        </a>
-        <a class="card" href="/输入/">
-          <h2>⌨️ 输入</h2>
-          <p>暂无描述，点击进入项目。</p>
-          <span class="tag">软键盘</span>
-        </a>
-        <a class="card" href="/qwen-vl/">
-          <h2>🤖 Qwen VL</h2>
-          <p>本地多模态 AI 助手 · 支持图片识别与对话</p>
-          <span class="tag">AI</span>
-        </a>
+    <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">🎮</div>
+          <div class="brand-text">
+            <h1>游戏大厅</h1>
+            <p>和好友一起玩</p>
+          </div>
+        </div>
+
+        <div class="me">
+          <div class="me-avatar" id="meAvatar">玩</div>
+          <div class="me-main">
+            <input id="meNick" class="me-nick" maxlength="12" aria-label="昵称" />
+            <div class="me-code">号码 <b id="meId">----</b><button class="mini" id="copyId">复制</button></div>
+          </div>
+        </div>
+
+        <div class="top-right">
+          <span class="pill" id="onlinePill"><i class="dot"></i><span id="onlineCount">0</span> 人在线</span>
+          <button class="icon-btn" id="btnSound" title="音效">🔔</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel games-panel">
+          <div class="panel-head">
+            <div>
+              <h2>游戏</h2>
+              <p class="sub">选一个开始，联机游戏可以邀请好友一起</p>
+            </div>
+          </div>
+          <div class="game-grid" id="gameGrid"></div>
+
+          <div class="howto">
+            <div class="howto-step">
+              <i>1</i>
+              <div><b>互相加好友</b><span>把你的号码发给对方，输入号码即可添加</span></div>
+            </div>
+            <div class="howto-step">
+              <i>2</i>
+              <div><b>点开好友聊天</b><span>约时间、聊两句，在线状态实时同步</span></div>
+            </div>
+            <div class="howto-step">
+              <i>3</i>
+              <div><b>「一起玩」邀请</b><span>对方接受后自动进同一个房间</span></div>
+            </div>
+          </div>
+
+          <div class="panel-head mt">
+            <div>
+              <h2>其他项目</h2>
+              <p class="sub">这个站点里的其他页面</p>
+            </div>
+          </div>
+          <div class="mini-links" id="miniLinks"></div>
+        </section>
+
+        <aside class="panel friends-panel">
+          <div class="panel-head">
+            <div>
+              <h2>好友</h2>
+              <p class="sub" id="friendHint">加了之后可以聊天、邀请一起玩</p>
+            </div>
+            <span class="count-badge" id="friendCount">0</span>
+          </div>
+
+          <div class="add-row">
+            <input id="friendCode" placeholder="输入好友号码…" maxlength="16" autocomplete="off" />
+            <button class="btn-add" id="btnAddFriend">添加</button>
+          </div>
+
+          <div class="friend-list" id="friendList"></div>
+
+          <div class="friend-empty" id="friendEmpty">
+            <div class="fe-icon">👋</div>
+            <p>还没有好友</p>
+            <span>把你的号码 <b id="emptyId">----</b> 发给朋友，互相添加就能聊天</span>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <!-- 聊天抽屉 -->
+    <div class="drawer" id="chatDrawer" aria-hidden="true">
+      <div class="dw-head">
+        <button class="dw-back" id="btnChatBack" aria-label="返回">←</button>
+        <div class="dw-title">
+          <b id="chatName">好友</b>
+          <span id="chatState">离线</span>
+        </div>
+        <button class="dw-invite" id="btnInvite">一起玩</button>
+      </div>
+      <div class="dw-body" id="chatBody"></div>
+      <form class="dw-input" id="chatForm">
+        <input id="chatInput" placeholder="发消息…" maxlength="500" autocomplete="off" />
+        <button type="submit" id="btnSend">发送</button>
+      </form>
+    </div>
+
+    <!-- 邀请横幅 -->
+    <div class="invite-banner" id="inviteBanner">
+      <div class="ib-avatar" id="ibAvatar">友</div>
+      <div class="ib-text">
+        <b id="ibFrom">好友</b> 邀请你一起玩「<span id="ibGame">猜数字</span>」
+        <small>房间号 <span id="ibCode">----</span></small>
+      </div>
+      <div class="ib-actions">
+        <button class="ib-accept" id="ibAccept">接受</button>
+        <button class="ib-ignore" id="ibIgnore">忽略</button>
       </div>
     </div>
+
+    <div class="toast-stack" id="toasts"></div>
+
+    <script src="猜数字/config.js"></script>
+    <script src="lobby.js"></script>
   </body>
 </html>
