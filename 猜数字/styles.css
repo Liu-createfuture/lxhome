@@ -1437,12 +1437,31 @@ body::before {
 
 @media (max-width: 640px) {
   .topbar {
-    padding: 10px 14px;
-    gap: 10px;
+    padding: 9px 12px;
+    gap: 8px;
     flex-wrap: wrap;
   }
   .brand-text p {
     display: none;
+  }
+  .brand-text h1 {
+    font-size: 15.5px;
+  }
+  .logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    font-size: 17px;
+  }
+  .back-home {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
   }
   .tabs {
     order: 3;
@@ -1452,25 +1471,61 @@ body::before {
   .tab {
     flex: 1;
     text-align: center;
+    padding: 9px 10px;
   }
   .online-pill {
     display: none;
   }
+  .layout {
+    padding: 12px 12px calc(32px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
   .panel {
-    padding: 16px;
-    border-radius: 16px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .panel-head h2 {
+    font-size: 17px;
+  }
+  .meters {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .meter {
+    padding: 10px 11px;
+    border-radius: 11px;
+  }
+  .meter strong {
+    font-size: 18px;
+  }
+  .meter .label {
+    font-size: 10.5px;
   }
   .guess-box {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .digits {
+    gap: 8px;
   }
   .digit {
-    height: 58px;
+    height: 62px;
     max-width: none;
+    border-radius: 13px;
+    font-size: 26px;
+  }
+  .btn.primary {
+    padding: 15px 20px;
+    border-radius: 12px;
+    font-size: 15px;
   }
   .board {
     max-height: none;
+    margin-top: 14px;
+    min-height: 200px;
   }
   .row {
     padding: 8px 10px;
@@ -1489,5 +1544,46 @@ body::before {
   }
   .race-timer {
     font-size: 16px;
+  }
+  .race-bar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .race-bar strong {
+    font-size: 14px;
+  }
+  .emote-row {
+    gap: 6px;
+  }
+  .chip {
+    padding: 8px 11px;
+    font-size: 11.5px;
+  }
+  .invite-banner {
+    top: auto;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    right: 12px;
+    transform: translateY(16px);
+    max-width: none;
+    flex-wrap: wrap;
+  }
+  .invite-banner.show {
+    transform: none;
+  }
+  .ib-text {
+    flex: 1;
+    min-width: 120px;
+  }
+  .ib-actions {
+    width: 100%;
+  }
+  .ib-accept,
+  .ib-ignore {
+    flex: 1;
+    padding: 11px 12px;
+  }
+  .toast-stack {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
 }

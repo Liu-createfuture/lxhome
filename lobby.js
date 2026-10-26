@@ -34,7 +34,8 @@
       ready: true
     },
     { id: 'soon1', name: '敬请期待', emoji: '🎲', desc: '下一款游戏正在筹备中', ready: false },
-    { id: 'soon2', name: '敬请期待', emoji: '🕹️', desc: '想玩什么告诉我，加进来', ready: false }
+    { id: 'soon2', name: '敬请期待', emoji: '🕹️', desc: '想玩什么告诉我，加进来', ready: false },
+    { id: 'more', name: '更多游戏', emoji: '＋', desc: '往大厅里加新游戏很简单', ready: false }
   ];
 
   const SITE_LINKS = [
@@ -149,6 +150,11 @@
 
   function renderGames() {
     $('#gameGrid').innerHTML = GAMES.map((g) => {
+      const trailing = g.ready
+        ? '<span class="game-play">→</span>'
+        : g.id === 'more'
+        ? ''
+        : '<span class="game-play">即将上线</span>';
       if (!g.ready) {
         return `<div class="game-card is-soon">
           <span class="game-emoji">${g.emoji}</span>
@@ -156,7 +162,7 @@
             <h3>${esc(g.name)}</h3>
             <p>${esc(g.desc)}</p>
           </div>
-          <span class="game-play">即将上线</span>
+          ${trailing}
         </div>`;
       }
       return `<a class="game-card" href="${g.href}">
@@ -165,7 +171,7 @@
           <h3>${esc(g.name)}${g.tag ? `<span class="badge">${esc(g.tag)}</span>` : ''}</h3>
           <p>${esc(g.desc)}</p>
         </div>
-        <span class="game-play">进入 →</span>
+        ${trailing}
       </a>`;
     }).join('');
   }
@@ -492,6 +498,7 @@
     activeId = id;
     $('#chatDrawer').classList.add('show');
     $('#chatDrawer').setAttribute('aria-hidden', 'false');
+    document.body.classList.add('chat-open');
     clearUnread(id);
     renderChat();
     renderFriends();
@@ -502,6 +509,7 @@
     activeId = null;
     $('#chatDrawer').classList.remove('show');
     $('#chatDrawer').setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('chat-open');
     renderFriends();
   }
 
