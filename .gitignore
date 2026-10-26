@@ -11,3 +11,6 @@ refresh_nav.py
 .workbuddy/
 node_modules/
 _shots/
+
+# 猜数字小游戏的服务端源码需要纳入版本管理（上面的 server.js 规则只针对根目录部署脚本）
+!/猜数字/server.js

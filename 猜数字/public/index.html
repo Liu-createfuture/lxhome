@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#eef1f8" />
+<title>猜数字 · 4位 1A2B</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f46e5'/%3E%3Ctext x='32' y='45' font-size='36' font-family='monospace' font-weight='700' fill='white' text-anchor='middle'%3E4%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">4</div>
+      <div class="brand-text">
+        <h1>猜数字</h1>
+        <p>4 位 · 不重复 · 1A2B</p>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-mode="solo" role="tab">单人练习</button>
+      <button class="tab" data-mode="online" role="tab">联机对战</button>
+    </nav>
+
+    <div class="top-actions">
+      <span class="online-pill" id="onlinePill" title="当前在线人数">
+        <i class="dot"></i><span id="onlineCount">0</span> 人在线
+      </span>
+      <button class="icon-btn" id="btnSound" title="音效开关" aria-label="音效开关">🔔</button>
+      <button class="icon-btn" id="btnRules" title="玩法说明" aria-label="玩法说明">?</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="main-col">
+
+      <!-- ============ 单人练习 ============ -->
+      <div class="panel" id="soloPanel">
+        <div class="panel-head">
+          <div>
+            <h2>单人练习</h2>
+            <p class="sub">系统随机生成 4 位不重复数字，用最少的次数破解</p>
+          </div>
+          <button class="btn ghost sm" id="soloNew">重开一局</button>
+        </div>
+
+        <div class="meters">
+          <div class="meter">
+            <span class="label">已猜次数</span>
+            <strong id="soloAttempts">0</strong>
+          </div>
+          <div class="meter">
+            <span class="label">用时</span>
+            <strong id="soloTimer">00:00</strong>
+          </div>
+          <div class="meter">
+            <span class="label">剩余可能</span>
+            <strong id="soloCandidates">5040</strong>
+          </div>
+        </div>
+
+        <div class="guess-box">
+          <div class="digits" id="soloDigits">
+            <input class="digit" inputmode="numeric" autocomplete="off" maxlength="1" aria-label="第1位" />
+            <input class="digit" inputmode="numeric" autocomplete="off" maxlength="1" aria-label="第2位" />
+            <input class="digit" inputmode="numeric" autocomplete="off" maxlength="1" aria-label="第3位" />
+            <input class="digit" inputmode="numeric" autocomplete="off" maxlength="1" aria-label="第4位" />
+          </div>
+          <button class="btn primary" id="soloSubmit">猜！</button>
+        </div>
+        <p class="hint" id="soloHint">输入 4 位互不相同的数字，按 Enter 提交</p>
+
+        <div class="board" id="soloBoard">
+          <div class="empty" id="soloEmpty">
+            <div class="empty-icon">🎯</div>
+            <p>还没有猜测记录</p>
+            <span>每一位数字互不相同，首位可以是 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 联机对战 ============ -->
+      <div class="panel hidden" id="onlinePanel">
+
+        <!-- 大厅 -->
+        <div id="lobbyView">
+          <div class="panel-head">
+            <div>
+              <h2>联机对战</h2>
+              <p class="sub">同一道题，和好友同时抢答，先猜中的人获胜</p>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>你的昵称</span>
+            <input id="nickInput" maxlength="12" placeholder="给自己起个名字" />
+          </label>
+
+          <button class="btn primary block" id="btnCreate">创建房间</button>
+
+          <div class="divider"><span>或加入好友的房间</span></div>
+
+          <div class="join-row">
+            <input id="codeInput" class="code-input" maxlength="4" placeholder="房间号 如 7K2M" autocomplete="off" />
+            <button class="btn" id="btnJoin">加入</button>
+          </div>
+
+          <div class="flow">
+            <div class="flow-step">
+              <i>1</i>
+              <div><b>创建房间</b><span>马上得到 4 位房间号</span></div>
+            </div>
+            <div class="flow-step">
+              <i>2</i>
+              <div><b>邀请好友</b><span>把房间号或链接发给 TA</span></div>
+            </div>
+            <div class="flow-step">
+              <i>3</i>
+              <div><b>同时抢答</b><span>先猜中的人获胜</span></div>
+            </div>
+          </div>
+          <p class="mini-note">自己先试试？同一个浏览器开两个标签页：一个创建房间，另一个用链接进入。</p>
+        </div>
+
+        <!-- 房间 -->
+        <div id="roomView" class="hidden">
+          <div class="room-head">
+            <div class="room-code-wrap">
+              <span class="eyebrow">房间号</span>
+              <div class="room-code">
+                <strong id="roomCode">----</strong>
+                <button class="mini-btn" id="btnCopyCode">复制</button>
+                <button class="mini-btn" id="btnCopyLink">邀请链接</button>
+              </div>
+            </div>
+            <button class="btn ghost sm" id="btnLeave">离开房间</button>
+          </div>
+
+          <div class="players" id="roomPlayers"></div>
+
+          <div class="room-controls" id="roomControls"></div>
+
+          <!-- 对战中 -->
+          <div id="raceArea" class="hidden">
+            <div class="race-bar">
+              <div class="race-me">
+                <span class="label">我的进度</span>
+                <strong><span id="raceAttempts">0</span> 次</strong>
+              </div>
+              <div class="race-timer" id="raceTimer">00:00</div>
+              <div class="race-op" id="raceOp">
+                <span class="label">对手</span>
+                <strong id="raceOpText">已猜 0 次</strong>
+              </div>
+            </div>
+
+            <div class="guess-box">
+              <div class="digits" id="onlineDigits">
+                <input class="digit" inputmode="numeric" autocomplete="off" maxlength="1" aria-label="第1位" />
+                <input class="digit" inputmode="numeric" autocomplete="off" maxlength="1" aria-label="第2位" />
+                <input class="digit" inputmode="numeric" autocomplete="off" maxlength="1" aria-label="第3位" />
+                <input class="digit" inputmode="numeric" autocomplete="off" maxlength="1" aria-label="第4位" />
+              </div>
+              <button class="btn primary" id="onlineSubmit">猜！</button>
+            </div>
+            <p class="hint" id="onlineHint">输入 4 位互不相同的数字，按 Enter 提交</p>
+
+            <div class="emote-row">
+              <button class="chip" data-emote="加油！">加油！</button>
+              <button class="chip" data-emote="这题有点东西">这题有点东西</button>
+              <button class="chip" data-emote="手下留情">手下留情</button>
+              <button class="chip" data-emote="我先猜到了 😎">我先猜到了 😎</button>
+            </div>
+
+            <div class="board" id="onlineBoard"></div>
+            <div class="race-overlay hidden" id="raceOverlay"><span id="raceOverlayText">3</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 侧栏 ============ -->
+    <aside class="side-col">
+      <div class="panel stats-panel">
+        <div class="panel-head tight">
+          <h3>我的成绩</h3>
+          <button class="link-btn" id="btnClearRecords">清空</button>
+        </div>
+        <div class="stat-grid">
+          <div class="stat"><strong id="statTotal">0</strong><span>对局数</span></div>
+          <div class="stat"><strong id="statBest">—</strong><span>最少次数</span></div>
+          <div class="stat"><strong id="statAvg">—</strong><span>平均次数</span></div>
+          <div class="stat"><strong id="statTime">—</strong><span>最快用时</span></div>
+        </div>
+      </div>
+
+      <div class="panel history-panel">
+        <div class="panel-head tight">
+          <h3>对局记录</h3>
+          <span class="count-badge" id="recordCount">0</span>
+        </div>
+        <div class="records" id="records"></div>
+        <div class="records-empty" id="recordsEmpty">
+          <p>还没有记录</p>
+          <span>完成一局后会保存在这里</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<!-- ============ 规则弹窗 ============ -->
+<div class="modal" id="rulesModal" aria-hidden="true">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>玩法说明</h3>
+      <button class="icon-btn close" data-close="rulesModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>系统会生成一个 <b>4 位数字</b>，每一位互不相同（首位可以是 0）。你每次输入 4 位数字，系统返回两个数值：</p>
+      <div class="rule-item">
+        <span class="tag a">A</span>
+        <div><b>数字正确且位置正确</b><p>例如答案是 8 3 7 4，猜 8 1 2 6 → 得到 1A</p></div>
+      </div>
+      <div class="rule-item">
+        <span class="tag b">B</span>
+        <div><b>数字正确但位置不对</b><p>例如答案是 8 3 7 4，猜 1 8 2 6 → 得到 1B</p></div>
+      </div>
+      <p class="mt">当返回 <b>4A0B</b> 时即破解成功。记录只会保留你猜的数字与 A/B 结果，答案在结束后揭晓。</p>
+      <p class="mt"><b>联机对战：</b>两人进入同一房间，使用同一个答案同时抢答，先猜中的人获胜；若对手掉线超过 90 秒，本局判你获胜。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" data-close="rulesModal">知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 结果弹窗 ============ -->
+<div class="modal" id="resultModal" aria-hidden="true">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="resultTitle">本局结束</h3>
+      <button class="icon-btn close" data-close="resultModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="result-hero" id="resultHero">
+        <div class="secret-reveal">
+          <span>答案</span>
+          <div class="secret-digits" id="resultSecret"></div>
+        </div>
+        <p class="result-line" id="resultLine"></p>
+      </div>
+      <div class="result-detail" id="resultDetail"></div>
+    </div>
+    <div class="modal-foot" id="resultFoot">
+      <button class="btn ghost" data-close="resultModal">关闭</button>
+      <button class="btn primary" id="btnResultAgain">再来一局</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script src="/app.js"></script>
+</body>
+</html>

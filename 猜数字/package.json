@@ -1,0 +1,17 @@
+{
+  "name": "guess-number-1a2b",
+  "version": "1.0.0",
+  "private": true,
+  "description": "4 位猜数字（1A2B）· 单人练习 + 联机对战房间",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
+  }
+}
