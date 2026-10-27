@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#eef1f8" />
+    <title>2048 · 游戏大厅</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f46e5'/%3E%3Ctext x='32' y='45' font-size='26' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E2048%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css?v=20261027-1" />
+  </head>
+  <body>
+    <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+    <div class="app">
+      <header class="topbar">
+        <a class="back-home" href="../" title="返回游戏大厅">← 大厅</a>
+        <div class="brand">
+          <div class="logo">2</div>
+          <div class="brand-text">
+            <h1>2048</h1>
+            <p>同样的数字撞一起就合并</p>
+          </div>
+        </div>
+        <div class="hud">
+          <div class="stat">
+            <span>得分</span>
+            <b id="score">0</b>
+          </div>
+          <div class="stat">
+            <span>最高</span>
+            <b id="best">0</b>
+          </div>
+        </div>
+      </header>
+
+      <main class="stage">
+        <div class="board-wrap">
+          <div class="board" id="board">
+            <div class="grid-bg" id="gridBg"></div>
+            <div class="tiles" id="tiles"></div>
+            <div class="overlay" id="overlay">
+              <div class="overlay-card">
+                <div class="ov-emoji" id="ovEmoji">🎉</div>
+                <h2 id="ovTitle">达成 2048</h2>
+                <p id="ovText">继续挑战更高的数字吧</p>
+                <div class="ov-actions">
+                  <button class="btn primary" id="ovMain">继续玩</button>
+                  <button class="btn" id="ovNew">新游戏</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="btnUndo">撤销</button>
+          <button class="btn primary" id="btnNew">新游戏</button>
+        </div>
+        <p class="tip">方向键 / WASD 移动 · 手机上直接滑动棋盘</p>
+      </main>
+    </div>
+
+    <div class="toast-stack" id="toasts"></div>
+
+    <script src="game.js?v=20261027-1"></script>
+  </body>
+</html>

@@ -46,6 +46,17 @@
       c2: '#34c759',
       ready: true
     },
+    {
+      id: '2048',
+      name: '2048',
+      emoji: '🔢',
+      desc: '滑动合并相同数字 · 冲击 2048',
+      href: '2048/',
+      tag: '单人',
+      c1: '#f0a91b',
+      c2: '#f65e3b',
+      ready: true
+    },
     { id: 'soon1', name: '敬请期待', emoji: '🎲', desc: '下一款游戏正在筹备中', ready: false },
     { id: 'more', name: '更多游戏', emoji: '＋', desc: '往大厅里加新游戏很简单', ready: false }
   ];
