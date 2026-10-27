@@ -23,19 +23,44 @@ function createSocial(send) {
   /** 已完成 hello 的连接 */
   const conns = new Set();
 
+  /* 用户当前在玩什么：取该用户在任意一条连接上的活动 */
+  function actOf(u) {
+    if (!u) return null;
+    let act = null;
+    u.conns.forEach((c) => {
+      if (!act && c.act) act = c.act;
+    });
+    return act;
+  }
+
   function statusOf(id) {
     const u = users.get(id);
-    return { id, nick: u ? u.nick : '', online: Boolean(u && u.conns.size) };
+    return {
+      id,
+      nick: u ? u.nick : '',
+      online: Boolean(u && u.conns.size),
+      act: actOf(u)
+    };
   }
 
   function broadcastPresence(u) {
     const online = u.conns.size > 0;
+    const act = online ? actOf(u) : null;
     conns.forEach((c) => {
       if (c === undefined) return;
       if (c.watch && c.watch.has(u.id) && !u.conns.has(c)) {
-        send(c.ws, { t: 'presence', id: u.id, nick: u.nick, online });
+        send(c.ws, { t: 'presence', id: u.id, nick: u.nick, online, act });
       }
     });
+  }
+
+  /* 标记某个连接正在玩的游戏（关掉 / 离开房间时传 null） */
+  function setActivity(conn, act) {
+    if (!conn) return;
+    const next = act && act.name ? { game: String(act.game || ''), name: String(act.name), code: String(act.code || '') } : null;
+    const same = JSON.stringify(conn.act || null) === JSON.stringify(next);
+    conn.act = next;
+    if (!same && conn.social) broadcastPresence(conn.social);
   }
 
   function deliverToUser(u, payload) {
@@ -120,7 +145,8 @@ function createSocial(send) {
     if (!u) return;
     const to = String(msg.to || '').toUpperCase().trim();
     const text = String(msg.text || '').trim().slice(0, MAX_TEXT);
-    const cid = String(msg.cid || '').slice(0, 40);
+    /* cid 同时充当消息 id，双方靠它做送达 / 已读回执 */
+    const cid = String(msg.cid || '').slice(0, 40) || `s${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
     if (!ID_RE.test(to) || !text || to === u.id) return;
 
     const payload = { t: 'dm', from: { id: u.id, nick: u.nick }, text, at: Date.now(), cid };
@@ -135,6 +161,21 @@ function createSocial(send) {
       if (box.queue.length > QUEUE_MAX) box.queue.shift();
       send(conn.ws, { t: 'dm-ack', cid, delivered: false });
     }
+  }
+
+  /* 已读回执：接收方打开聊天后，把读到的消息 id 回传给发送方 */
+  function onRead(conn, msg) {
+    const u = conn.social;
+    if (!u) return;
+    const to = String(msg.to || '').toUpperCase().trim();
+    const ids = (Array.isArray(msg.ids) ? msg.ids : [])
+      .map((v) => String(v || '').slice(0, 40))
+      .filter(Boolean)
+      .slice(0, 100);
+    if (!ID_RE.test(to) || !ids.length) return;
+    const target = users.get(to);
+    if (!target || !target.conns.size) return;
+    deliverToUser(target, { t: 'read', from: { id: u.id, nick: u.nick }, ids, at: Date.now() });
   }
 
   function onTyping(conn, msg) {
@@ -189,6 +230,7 @@ function createSocial(send) {
     profile: onProfile,
     watch: onWatch,
     dm: onDm,
+    read: onRead,
     typing: onTyping,
     invite: onInvite,
     'invite-reply': onInviteReply
@@ -209,6 +251,7 @@ function createSocial(send) {
     conns.delete(conn);
     const u = conn.social;
     conn.watch = new Set();
+    conn.act = null;
     conn.social = null;
     if (!u) return;
     u.conns.delete(conn);
@@ -223,7 +266,7 @@ function createSocial(send) {
     return { users: users.size, onlineUsers: online };
   }
 
-  return { handle, unregister, stats };
+  return { handle, unregister, stats, setActivity };
 }
 
 module.exports = { createSocial, sanitizeNick };

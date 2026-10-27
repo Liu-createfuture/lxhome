@@ -9,7 +9,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f46e5'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='white'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="lobby.css?v=20261027-4" />
+    <link rel="stylesheet" href="lobby.css?v=20261027-9" />
   </head>
   <body>
     <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -45,6 +45,16 @@
           <button class="me-copy" id="copyId">复制号码</button>
         </div>
       </header>
+
+      <!-- 在线好友：一眼看到谁在线、在玩什么，点开就能聊或直接邀请 -->
+      <section class="online-strip hidden" id="onlineStrip">
+        <div class="os-head">
+          <span class="os-dot"></span>
+          <b>在线好友</b>
+          <span class="os-count" id="onlineFriendsCount">0</span>
+        </div>
+        <div class="os-list" id="onlineFriends"></div>
+      </section>
 
       <main class="layout">
         <section class="panel games-panel">
@@ -107,7 +117,9 @@
             <button class="chat-invite" id="btnInvite">一起玩</button>
           </div>
           <div class="chat-body" id="chatBody"></div>
+          <div class="emoji-panel" id="emojiPanel" aria-hidden="true"></div>
           <form class="chat-input" id="chatForm">
+            <button type="button" class="emoji-btn" id="btnEmoji" aria-label="表情" title="表情">😊</button>
             <input id="chatInput" placeholder="发消息…" maxlength="500" autocomplete="off" />
             <button type="submit" id="btnSend">发送</button>
           </form>
@@ -130,8 +142,23 @@
 
     <div class="toast-stack" id="toasts"></div>
 
-    <script src="猜数字/net-lite.js?v=20261027-4"></script>
-    <script src="猜数字/config.js?v=20261027-4"></script>
-    <script src="lobby.js?v=20261027-4"></script>
+    <!-- 邀请：选一个要一起玩的游戏 -->
+    <div class="game-picker" id="gamePicker" aria-hidden="true">
+      <div class="gp-backdrop" data-gpclose></div>
+      <div class="gp-card" role="dialog" aria-label="选择游戏">
+        <div class="gp-head">
+          <div>
+            <h3>邀请一起玩</h3>
+            <p id="gpSub">选择游戏</p>
+          </div>
+          <button class="fs-close" data-gpclose aria-label="关闭">✕</button>
+        </div>
+        <div class="gp-list" id="gpList"></div>
+      </div>
+    </div>
+
+    <script src="猜数字/net-lite.js?v=20261027-9"></script>
+    <script src="猜数字/config.js?v=20261027-9"></script>
+    <script src="lobby.js?v=20261027-9"></script>
   </body>
 </html>

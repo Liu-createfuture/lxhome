@@ -718,6 +718,7 @@
     socket = ws;
 
     ws.addEventListener('open', () => {
+      if (window.HubFriends) HubFriends.onConnect();
       const pending = queue.splice(0);
       pending.forEach((m) => {
         try {
@@ -760,11 +761,18 @@
   }
 
   function handle(msg) {
+    if (window.HubFriends && HubFriends.handle(msg)) return;
+
     if (msg.t === 'joined') {
       S.roomCode = msg.code;
       $('#netCodeLabel').textContent = msg.code;
       $('#netEntry').classList.add('hidden');
       $('#netRoom').classList.remove('hidden');
+      if (S.inviteTo) {
+        const to = S.inviteTo;
+        S.inviteTo = null;
+        send({ t: 'invite', to, code: msg.code, game: 'jump', gameName: '跳一跳' });
+      }
       return;
     }
     if (msg.t === 'toast') {
@@ -962,10 +970,37 @@
     requestAnimationFrame(loop);
     window.addEventListener('resize', resize);
 
-    // 带房号进来：自动加入
+    /* 好友面板：在线状态实时同步，可直接邀请一起玩 */
+    if (window.HubFriends) {
+      HubFriends.mount({
+        send: (o) => send(o),
+        game: { id: 'jump', name: '跳一跳' },
+        room: () => (S.roomCode ? { code: S.roomCode, game: 'jump', name: '跳一跳' } : null),
+        createRoom: (fid) => {
+          S.inviteTo = fid;
+          connect();
+          send({ t: 'create', nick: S.myNick, game: 'jump' });
+        },
+        joinRoom: (code) => {
+          location.href = roomLink(code);
+        }
+      });
+      /* 单机时也连上，好友在线状态与邀请才收得到 */
+      connect();
+    }
+
     const params = new URLSearchParams(location.search);
     const room = (params.get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
-    if (room) {
+    const inviteTo = (params.get('invite') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16);
+
+    if (inviteTo) {
+      /* 从大厅点「一起玩」过来：先开房，进房后自动把房号推给好友 */
+      S.inviteTo = inviteTo;
+      connect();
+      send({ t: 'create', nick: S.myNick, game: 'jump' });
+      $('#netModal').classList.add('show');
+      toast('正在开房间，准备邀请好友…');
+    } else if (room) {
       connect();
       send({ t: 'join', code: room, nick: S.myNick });
       $('#netModal').classList.add('show');

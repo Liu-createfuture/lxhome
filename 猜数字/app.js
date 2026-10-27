@@ -631,7 +631,9 @@
         net.compatWarned = true;
         toast('当前浏览器限制直连，已切换兼容连接');
       }
-      if (HUB) {
+      if (HUB && window.HubFriends) {
+        HubFriends.onConnect();
+      } else if (HUB) {
         try {
           ws.send(JSON.stringify({ t: 'hello', id: HUB.id, nick: HUB.nick }));
         } catch {
@@ -668,7 +670,7 @@
     ws.addEventListener('close', () => {
       net.connected = false;
       net.ws = null;
-      if (net.code) scheduleReconnect();
+      scheduleReconnect();
     });
 
     ws.addEventListener('error', () => {});
@@ -680,15 +682,13 @@
     const delay = Math.min(1000 * net.retry, 6000);
     net.retryTimer = setTimeout(() => {
       net.retryTimer = null;
-      if (!net.connected && net.code) connect();
+      if (!net.connected) connect();
     }, delay);
   }
 
   function handleMessage(msg) {
-    if (msg.t === 'invite') {
-      showGameInvite(msg);
-      return;
-    }
+    /* 好友面板模块先处理：在线状态、邀请、邀请回执 */
+    if (window.HubFriends && HubFriends.handle(msg)) return;
 
     if (msg.t === 'joined') {
       net.code = msg.code;
@@ -750,28 +750,6 @@
       }
       toast(msg.msg, 'error');
     }
-  }
-
-  /* ------------------ 好友邀请 ------------------ */
-
-  function showGameInvite(msg) {
-    const banner = $('#inviteBanner');
-    if (!banner) return;
-    const nick = (msg.from && msg.from.nick) || '好友';
-    $('#ibFrom').textContent = nick;
-    $('#ibAvatar').textContent = nick.slice(0, 1);
-    const code = String(msg.code || '').toUpperCase();
-    banner.classList.add('show');
-    playSound('tick');
-
-    $('#ibAccept').onclick = () => {
-      banner.classList.remove('show');
-      location.href = withQuery({ room: code });
-    };
-    $('#ibIgnore').onclick = () => banner.classList.remove('show');
-
-    clearTimeout(showGameInvite._timer);
-    showGameInvite._timer = setTimeout(() => banner.classList.remove('show'), 30000);
   }
 
   /* ------------------ 渲染：房间 ------------------ */
@@ -1343,6 +1321,25 @@
     setInterval(refreshOnlineCount, 20000);
 
     newSolo();
+
+    /* 游戏内的好友面板：在线状态 + 邀请（与大厅共用身份与好友列表） */
+    if (window.HubFriends) {
+      HubFriends.mount({
+        send: (o) => send(o),
+        game: { id: 'guess', name: '猜数字' },
+        room: () => (net.code ? { code: net.code, game: 'guess', name: '猜数字' } : null),
+        createRoom: (fid) => {
+          net.inviteTo = fid;
+          setMode('online');
+          send({ t: 'create', nick: preferredNick() });
+        },
+        joinRoom: (code) => {
+          location.href = withQuery({ room: code });
+        }
+      });
+      /* 单人练习时也连上，好友在线状态和邀请才有地方收 */
+      if (HUB) connect();
+    }
 
     /* 单独部署（页面就在服务根目录）时没有大厅可返回，隐藏返回按钮 */
     const backHome = $('#backHome');

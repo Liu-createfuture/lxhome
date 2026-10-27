@@ -31,6 +31,7 @@
       desc: '4 位 1A2B · 单人练习 / 和好友抢答',
       href: '猜数字/',
       tag: '可联机',
+      online: true,
       c1: '#6366f1',
       c2: '#8b5cf6',
       ready: true
@@ -64,6 +65,7 @@
       desc: '按住蓄力，松手起跳 · 可联机竞速',
       href: '跳一跳/',
       tag: '可联机',
+      online: true,
       c1: '#38bdf8',
       c2: '#6366f1',
       ready: true
@@ -265,6 +267,39 @@
     return f.nick || (presence.get(f.id) || {}).nick || `好友${f.id.slice(0, 2)}`;
   }
 
+  /* 好友现在处于什么状态：离线 / 在线 / 正在玩某款游戏 */
+  function stateOf(id) {
+    const p = presence.get(id) || {};
+    if (!p.online) return { text: '离线', cls: 'off', online: false, act: null };
+    if (p.act && p.act.name) return { text: `在玩 ${p.act.name}`, cls: 'busy', online: true, act: p.act };
+    return { text: '在线', cls: 'on', online: true, act: null };
+  }
+
+  function onlineFriends() {
+    return friends
+      .map((f) => ({ f, st: stateOf(f.id) }))
+      .filter((x) => x.st.online)
+      .sort((a, b) => Number(Boolean(a.st.act)) - Number(Boolean(b.st.act)));
+  }
+
+  /* 页面上的「在线好友」条：不进聊天也能看到状态、直接邀请 */
+  function renderOnlineStrip() {
+    const list = onlineFriends();
+    const strip = $('#onlineStrip');
+    $('#onlineFriendsCount').textContent = String(list.length);
+    strip.classList.toggle('hidden', list.length === 0);
+    $('#onlineFriends').innerHTML = list
+      .map(({ f, st }) => `<div class="of-chip" data-id="${esc(f.id)}" role="button" tabindex="0">
+        <span class="of-avatar">${esc(friendLabel(f).slice(0, 1))}<i class="${st.act ? 'busy' : 'on'}"></i></span>
+        <span class="of-main">
+          <b>${esc(friendLabel(f))}</b>
+          <em class="${st.cls}">${esc(st.text)}</em>
+        </span>
+        <button class="of-invite" data-invite="${esc(f.id)}" title="邀请一起玩">＋</button>
+      </div>`)
+      .join('');
+  }
+
   function sortedFriends() {
     return friends.slice().sort((a, b) => {
       const oa = (presence.get(a.id) || {}).online ? 1 : 0;
@@ -288,17 +323,18 @@
     $('#friendList').innerHTML = list
       .map((f) => {
         const p = presence.get(f.id) || {};
+        const st = stateOf(f.id);
         const last = lastMessage(f.id);
         const unread = ls.get(UNREAD_PREFIX + f.id, 0);
         const preview = last
           ? `${last.dir === 'me' ? '我：' : ''}${last.text}`
-          : p.online
-          ? '在线'
-          : '点这里发消息';
+          : st.online
+          ? '点这里发消息'
+          : '离线 · 消息会暂存';
         return `<div class="friend" data-id="${esc(f.id)}">
-          <div class="f-avatar">${esc(friendLabel(f).slice(0, 1))}<i class="${p.online ? 'on' : ''}"></i></div>
+          <div class="f-avatar">${esc(friendLabel(f).slice(0, 1))}<i class="${p.online ? (st.act ? 'busy' : 'on') : ''}"></i></div>
           <div class="f-main">
-            <div class="f-top"><b>${esc(friendLabel(f))}</b></div>
+            <div class="f-top"><b>${esc(friendLabel(f))}</b><span class="f-state ${st.cls}">${esc(st.text)}</span></div>
             <div class="f-sub">${esc(preview)}</div>
           </div>
           ${unread ? `<span class="f-unread">${unread > 99 ? '99+' : unread}</span>` : ''}
@@ -306,6 +342,7 @@
       })
       .join('');
 
+    renderOnlineStrip();
     renderBadge();
   }
 
@@ -322,15 +359,33 @@
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
+  /* 只由表情组成的消息，渲染成大表情 */
+  const EMOJI_ONLY = /^(?:[\p{Extended_Pictographic}\u200d\ufe0f\u{1f3fb}-\u{1f3ff}\s]){1,10}$/u;
+
+  function isBigEmoji(text) {
+    const t = String(text || '').trim();
+    if (!t || t.length > 12) return false;
+    return EMOJI_ONLY.test(t) && /\p{Extended_Pictographic}/u.test(t);
+  }
+
   function renderChat() {
     if (!activeId) return;
     const f = friends.find((x) => x.id === activeId);
     const p = presence.get(activeId) || {};
+    const st = stateOf(activeId);
     $('#chatName').textContent = f ? friendLabel(f) : '好友';
     const stateEl = $('#chatState');
-    stateEl.textContent = p.typing ? '正在输入…' : p.online ? '在线' : '离线';
-    stateEl.classList.toggle('on', Boolean(p.online) && !p.typing);
+    if (p.typing) {
+      stateEl.textContent = '正在输入…';
+    } else if (st.act) {
+      stateEl.textContent = `在玩 ${st.act.name}`;
+    } else {
+      stateEl.textContent = st.online ? '在线' : '离线';
+    }
+    stateEl.classList.toggle('on', Boolean(p.online) && !p.typing && !st.act);
+    stateEl.classList.toggle('busy', Boolean(st.act));
     $('#btnInvite').disabled = !p.online;
+    $('#btnInvite').textContent = p.online ? '一起玩' : '离线';
 
     const msgs = ls.get(CHAT_PREFIX + activeId, []);
     const body = $('#chatBody');
@@ -343,14 +398,99 @@
         if (m.dir === 'sys') {
           return `<div class="msg sys"><div class="bubble">${esc(m.text)}</div></div>`;
         }
-        const ok = m.dir === 'me' ? (m.ok ? ' · 已送达' : ' · 待送达') : '';
+        const big = isBigEmoji(m.text);
+        let state = '';
+        if (m.dir === 'me') {
+          if (m.read) state = `<span class="acked">已读</span>`;
+          else if (m.ok) state = '已送达';
+          else state = '待送达';
+        }
         return `<div class="msg ${m.dir === 'me' ? 'mine' : 'them'}">
-          <div class="bubble">${esc(m.text)}</div>
-          <div class="meta">${fmtClock(m.at)}${ok}</div>
+          <div class="bubble${big ? ' big' : ''}">${esc(m.text)}</div>
+          <div class="meta">${fmtClock(m.at)}${state ? ' · ' + state : ''}</div>
         </div>`;
       })
       .join('');
     body.scrollTop = body.scrollHeight;
+  }
+
+  /* ---------------- 已读回执 ---------------- */
+
+  /* 把「我读到的对方消息」回执发出去，每条只发一次 */
+  function markConversationRead(id) {
+    if (!id) return;
+    const arr = ls.get(CHAT_PREFIX + id, []);
+    const ids = [];
+    arr.forEach((m) => {
+      if (m.dir === 'them' && m.cid && !m.readSent) {
+        m.readSent = true;
+        ids.push(m.cid);
+      }
+    });
+    if (!ids.length) return;
+    ls.set(CHAT_PREFIX + id, arr);
+    send({ t: 'read', to: id, ids });
+  }
+
+  /* 对方读了我的消息 */
+  function applyReadReceipt(fromId, ids) {
+    const set = new Set(ids || []);
+    if (!set.size) return;
+    const arr = ls.get(CHAT_PREFIX + fromId, []);
+    let changed = false;
+    arr.forEach((m) => {
+      if (m.dir === 'me' && m.cid && set.has(m.cid) && !m.read) {
+        m.read = true;
+        changed = true;
+      }
+    });
+    if (!changed) return;
+    ls.set(CHAT_PREFIX + fromId, arr);
+    if (activeId === fromId) renderChat();
+  }
+
+  /* ---------------- 表情 ---------------- */
+
+  const EMOJIS = [
+    '😀', '😄', '😁', '😆', '😂', '🤣', '😊', '😇',
+    '🙂', '😉', '😍', '🥰', '😘', '😜', '🤪', '🤗',
+    '🤔', '🤨', '😐', '😴', '😪', '😭', '😤', '😡',
+    '🥳', '😎', '🤓', '🥺', '😱', '😳', '🤯', '😅',
+    '😬', '🙃', '😋', '🤒', '👻', '💀', '🤖', '💩',
+    '👍', '👎', '👏', '🙌', '🙏', '💪', '🤝', '✌️',
+    '👌', '🤙', '👋', '🫡', '❤️', '💔', '💯', '🔥',
+    '✨', '🎉', '🎊', '🎁', '🏆', '⚡', '💡', '⭐',
+    '🌈', '☀️', '🌙', '🍉', '🍎', '🍕', '🍔', '🍰',
+    '☕', '🍺', '🎮', '🎯', '🎲', '🧩', '🐤', '🐶',
+    '🐱', '🦄', '🐼', '🚀', '😏', '🥱', '🤡', '🫠'
+  ];
+
+  function renderEmojiPanel() {
+    $('#emojiPanel').innerHTML = EMOJIS.map(
+      (e) => `<button type="button" class="emoji-cell" data-emoji="${e}">${e}</button>`
+    ).join('');
+  }
+
+  function toggleEmoji(force) {
+    const panel = $('#emojiPanel');
+    const show = force == null ? !panel.classList.contains('show') : force;
+    panel.classList.toggle('show', show);
+    panel.setAttribute('aria-hidden', show ? 'false' : 'true');
+    $('#btnEmoji').classList.toggle('is-on', show);
+  }
+
+  function insertEmoji(ch) {
+    const input = $('#chatInput');
+    const start = typeof input.selectionStart === 'number' ? input.selectionStart : input.value.length;
+    const end = typeof input.selectionEnd === 'number' ? input.selectionEnd : input.value.length;
+    input.value = input.value.slice(0, start) + ch + input.value.slice(end);
+    const pos = start + ch.length;
+    try {
+      input.setSelectionRange(pos, pos);
+    } catch {
+      /* ignore */
+    }
+    input.focus();
   }
 
   /* ---------------- 好友面板 ---------------- */
@@ -376,6 +516,7 @@
     sheet.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('sheet-open');
     activeId = null;
+    toggleEmoji(false);
     setSheetMode('list');
     renderFriends();
   }
@@ -385,6 +526,7 @@
     clearUnread(id);
     openFriends('chat');
     renderChat();
+    markConversationRead(id);
     renderFriends();
     setTimeout(() => {
       if (window.matchMedia('(min-width: 641px)').matches) $('#chatInput').focus();
@@ -393,6 +535,7 @@
 
   function backToList() {
     activeId = null;
+    toggleEmoji(false);
     setSheetMode('list');
     renderFriends();
   }
@@ -510,7 +653,11 @@
       }
       case 'presence-list': {
         (msg.list || []).forEach((item) => {
-          presence.set(item.id, { online: item.online, nick: item.nick || '' });
+          presence.set(item.id, {
+            online: Boolean(item.online),
+            nick: item.nick || '',
+            act: item.online ? item.act || null : null
+          });
           if (item.nick) upsertFriend(item.id, item.nick);
         });
         renderFriends();
@@ -519,7 +666,12 @@
       }
       case 'presence': {
         const prev = presence.get(msg.id) || {};
-        presence.set(msg.id, { online: msg.online, nick: msg.nick || prev.nick || '' });
+        presence.set(msg.id, {
+          online: Boolean(msg.online),
+          nick: msg.nick || prev.nick || '',
+          act: msg.online ? msg.act || null : null,
+          typing: Boolean(msg.online) && prev.typing
+        });
         if (msg.nick) upsertFriend(msg.id, msg.nick);
         renderFriends();
         if (activeId === msg.id) renderChat();
@@ -528,10 +680,16 @@
       case 'dm': {
         const from = msg.from || {};
         const added = upsertFriend(from.id, from.nick);
-        pushMessage(from.id, { dir: 'them', text: msg.text, at: msg.at || Date.now() });
+        pushMessage(from.id, {
+          dir: 'them',
+          text: msg.text,
+          at: msg.at || Date.now(),
+          cid: msg.cid || ''
+        });
         if (activeId === from.id) {
           renderChat();
           clearUnread(from.id);
+          markConversationRead(from.id);
         } else {
           bumpUnread(from.id);
         }
@@ -540,15 +698,21 @@
         renderFriends();
         break;
       }
+      case 'read': {
+        applyReadReceipt((msg.from || {}).id, msg.ids);
+        break;
+      }
       case 'dm-ack': {
-        if (!activeId) break;
-        const msgs = ls.get(CHAT_PREFIX + activeId, []);
-        const hit = msgs.find((m) => m.cid && m.cid === msg.cid);
-        if (hit) {
+        const cid = msg.cid;
+        if (!cid) break;
+        friends.forEach((f) => {
+          const arr = ls.get(CHAT_PREFIX + f.id, []);
+          const hit = arr.find((m) => m.cid === cid && m.dir === 'me');
+          if (!hit) return;
           hit.ok = Boolean(msg.delivered);
-          ls.set(CHAT_PREFIX + activeId, msgs);
-          renderChat();
-        }
+          ls.set(CHAT_PREFIX + f.id, arr);
+          if (activeId === f.id) renderChat();
+        });
         break;
       }
       case 'typing': {
@@ -631,13 +795,63 @@
     pendingInvite = null;
   }
 
-  function inviteFriend(id) {
-    const p = presence.get(id);
-    if (!p || !p.online) {
+  let inviteFor = null;
+
+  function gameUrlFor(g, params) {
+    const url = new URL(g.href, location.href);
+    const sc = new URLSearchParams(location.search).get('sharecode') || SHARE;
+    if (sc) url.searchParams.set('sharecode', sc);
+    Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+    return url.toString();
+  }
+
+  /* 选游戏：可联机的游戏才会出现在这里，加新游戏只要在 GAMES 里补 online: true */
+  function openGamePicker(id) {
+    const f = friends.find((x) => x.id === id);
+    if (!f) return;
+    inviteFor = id;
+    const st = stateOf(id);
+    const who = friendLabel(f);
+    $('#gpSub').innerHTML = st.online
+      ? `<b>${esc(who)}</b> · ${st.act ? `正在玩「${esc(st.act.name)}」，可能没空` : '在线，马上能来'}`
+      : `<b>${esc(who)}</b> · <span class="gp-off">离线，等 TA 上线再邀请</span>`;
+
+    const list = GAMES.filter((g) => g.ready && g.online);
+    $('#gpList').innerHTML = list.length
+      ? list
+          .map(
+            (g) => `<button class="gp-item" data-game="${esc(g.id)}" style="--c1:${g.c1};--c2:${g.c2}"${
+              st.online ? '' : ' disabled'
+            }>
+            <span class="gp-emoji">${g.emoji}</span>
+            <span class="gp-body"><b>${esc(g.name)}</b><em>${esc(g.desc)}</em></span>
+            <span class="gp-go">邀请 →</span>
+          </button>`
+          )
+          .join('')
+      : '<p class="gp-none">还没有支持联机的游戏</p>';
+
+    $('#gamePicker').classList.add('show');
+    $('#gamePicker').setAttribute('aria-hidden', 'false');
+  }
+
+  function closeGamePicker() {
+    $('#gamePicker').classList.remove('show');
+    $('#gamePicker').setAttribute('aria-hidden', 'true');
+    inviteFor = null;
+  }
+
+  function inviteToGame(gameId) {
+    const g = GAMES.find((x) => x.id === gameId);
+    if (!g || !inviteFor) return;
+    const id = inviteFor;
+    const st = stateOf(id);
+    if (!st.online) {
       toast('对方不在线，等 TA 上线再邀请吧', 'error');
       return;
     }
-    location.href = `猜数字/?invite=${encodeURIComponent(id)}`;
+    closeGamePicker();
+    location.href = gameUrlFor(g, { invite: id });
   }
 
   /* ---------------- 加好友 ---------------- */
@@ -709,8 +923,35 @@
       if (row) openChat(row.dataset.id);
     });
 
+    /* 在线好友条：点头像进聊天，点「＋」直接邀请 */
+    $('#onlineFriends').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-invite]');
+      if (btn) {
+        e.stopPropagation();
+        openGamePicker(btn.dataset.invite);
+        return;
+      }
+      const chip = e.target.closest('.of-chip');
+      if (chip) openChat(chip.dataset.id);
+    });
+
     $('#btnInvite').addEventListener('click', () => {
-      if (activeId) inviteFriend(activeId);
+      if (activeId) openGamePicker(activeId);
+    });
+
+    $('#gamePicker').addEventListener('click', (e) => {
+      if (e.target.closest('[data-gpclose]')) {
+        closeGamePicker();
+        return;
+      }
+      const item = e.target.closest('.gp-item');
+      if (item && !item.disabled) inviteToGame(item.dataset.game);
+    });
+
+    $('#btnEmoji').addEventListener('click', () => toggleEmoji());
+    $('#emojiPanel').addEventListener('click', (e) => {
+      const cell = e.target.closest('[data-emoji]');
+      if (cell) insertEmoji(cell.dataset.emoji);
     });
 
     $('#chatForm').addEventListener('submit', (e) => {
@@ -720,6 +961,7 @@
       if (!text) return;
       sendDm(text);
       input.value = '';
+      toggleEmoji(false);
     });
 
     $('#chatInput').addEventListener('input', () => {
@@ -729,11 +971,12 @@
 
     $('#ibAccept').addEventListener('click', () => {
       if (!pendingInvite) return;
-      const code = pendingInvite.code;
-      const from = pendingInvite.from && pendingInvite.from.id;
-      if (from) send({ t: 'invite-reply', to: from, accept: true, code });
+      const invite = pendingInvite;
+      const from = invite.from && invite.from.id;
+      if (from) send({ t: 'invite-reply', to: from, accept: true, code: invite.code });
       hideInvite();
-      location.href = `猜数字/?room=${encodeURIComponent(code)}`;
+      const g = GAMES.find((x) => x.id === invite.game) || GAMES.find((x) => x.id === 'guess');
+      location.href = gameUrlFor(g, { room: invite.code });
     });
     $('#ibIgnore').addEventListener('click', () => {
       const from = pendingInvite && pendingInvite.from && pendingInvite.from.id;
@@ -751,6 +994,14 @@
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
+      if ($('#gamePicker').classList.contains('show')) {
+        closeGamePicker();
+        return;
+      }
+      if ($('#emojiPanel').classList.contains('show')) {
+        toggleEmoji(false);
+        return;
+      }
       const sheet = $('#friendSheet');
       if (!sheet.classList.contains('open')) return;
       if (sheet.classList.contains('mode-chat')) backToList();
@@ -762,6 +1013,7 @@
     renderMe();
     renderGames();
     renderLinks();
+    renderEmojiPanel();
     renderFriends();
     syncSoundBtn();
     setSheetMode('list');

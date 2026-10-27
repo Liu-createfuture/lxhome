@@ -16,7 +16,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const ROOT_DIR = __dirname;
 
 /* 只对外暴露这几个静态文件，避免把 server.js / package.json 等源码暴露出去 */
-const STATIC_FILES = new Set(['index.html', 'styles.css', 'app.js', 'config.js', 'net-lite.js']);
+const STATIC_FILES = new Set(['index.html', 'styles.css', 'app.js', 'config.js', 'net-lite.js', 'hub-friends.js']);
 
 const MAX_GUESSES = 60;              // 单人单局猜测上限（安全阀）
 const RECONNECT_GRACE_MS = 90 * 1000; // 掉线后保留席位时长
@@ -436,6 +436,7 @@ function detach(conn) {
   const player = conn.player;
   conn.room = null;
   conn.player = null;
+  syncActivity(conn);
   if (!room || !player) return;
 
   player.ws = null;
@@ -467,6 +468,7 @@ function leaveRoom(conn) {
   const player = conn.player;
   conn.room = null;
   conn.player = null;
+  syncActivity(conn);
   if (!room || !player) return;
 
   if (player.forfeitTimer) {
@@ -505,6 +507,7 @@ function bindPlayer(conn, room, player, ws) {
     player.forfeitTimer = null;
   }
   sendTo(ws, { t: 'joined', code: room.code, token: player.token, nick: player.nick });
+  syncActivity(conn);
   broadcastState(room);
 }
 
@@ -542,7 +545,19 @@ class SseSocket extends require('events').EventEmitter {
 }
 
 function makeConn(ws) {
-  return { ws, room: null, player: null, social: null, watch: new Set() };
+  return { ws, room: null, player: null, social: null, watch: new Set(), act: null };
+}
+
+/* 游戏显示名：用于把「正在玩什么」广播给好友 */
+const GAME_META = { guess: '猜数字', jump: '跳一跳' };
+
+function syncActivity(conn) {
+  if (!conn || !conn.social) return;
+  const room = conn.room;
+  social.setActivity(
+    conn,
+    room ? { game: room.game, name: GAME_META[room.game] || '游戏', code: room.code } : null
+  );
 }
 
 function registerConn(ws) {
@@ -564,7 +579,11 @@ function registerConn(ws) {
     if (!msg || typeof msg.t !== 'string') return;
 
     /* 大厅社交：身份、在线状态、私聊、邀请 */
-    if (social.handle(conn, msg)) return;
+    if (social.handle(conn, msg)) {
+      /* hello 之后如果已经在房间里，补一次活动状态 */
+      if (msg.t === 'hello') syncActivity(conn);
+      return;
+    }
 
     /* 创建房间 */
     if (msg.t === 'create') {
