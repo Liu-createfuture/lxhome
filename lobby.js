@@ -1,6 +1,6 @@
 /* =========================================================
-   游戏大厅 · 前端逻辑
-   身份 / 好友 / 聊天 / 邀请，全部走同一个联机服务
+   游戏大厅 · 逻辑
+   好友收进「好友」按钮 → 侧滑面板（列表 / 聊天）
    ========================================================= */
 
 (function () {
@@ -22,7 +22,7 @@
     return `${proto}//${location.host}/`;
   }
 
-  /* 游戏清单：以后加新游戏，往这里加一条即可 */
+  /* 游戏清单：加新游戏照抄一条即可 */
   const GAMES = [
     {
       id: 'guess',
@@ -31,10 +31,22 @@
       desc: '4 位 1A2B · 单人练习 / 和好友抢答',
       href: '猜数字/',
       tag: '可联机',
+      c1: '#6366f1',
+      c2: '#8b5cf6',
+      ready: true
+    },
+    {
+      id: 'link',
+      name: '连连看',
+      emoji: '🧩',
+      desc: '相同图案连线消除 · 3 分钟挑战',
+      href: '连连看/',
+      tag: '单人',
+      c1: '#0f9b8e',
+      c2: '#34c759',
       ready: true
     },
     { id: 'soon1', name: '敬请期待', emoji: '🎲', desc: '下一款游戏正在筹备中', ready: false },
-    { id: 'soon2', name: '敬请期待', emoji: '🕹️', desc: '想玩什么告诉我，加进来', ready: false },
     { id: 'more', name: '更多游戏', emoji: '＋', desc: '往大厅里加新游戏很简单', ready: false }
   ];
 
@@ -95,7 +107,7 @@
   let friends = ls.get(FRIENDS_KEY, []);
   if (!Array.isArray(friends)) friends = [];
 
-  const presence = new Map(); // id -> { online, nick, typing }
+  const presence = new Map();
   let activeId = null;
   let pendingInvite = null;
 
@@ -117,11 +129,10 @@
       const osc = audioCtx.createOscillator();
       osc.type = 'sine';
       osc.frequency.value = kind === 'invite' ? 880 : 620;
-      gain.gain.value = 0.08;
-      osc.connect(gain).connect(audioCtx.destination);
       const t = audioCtx.currentTime;
       gain.gain.setValueAtTime(0.08, t);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + (kind === 'invite' ? 0.45 : 0.16));
+      osc.connect(gain).connect(audioCtx.destination);
       osc.start(t);
       osc.stop(t + 0.5);
     } catch {
@@ -133,13 +144,54 @@
     $('#btnSound').textContent = soundOn ? '🔔' : '🔕';
     $('#btnSound').classList.toggle('is-off', !soundOn);
   }
-  syncSoundBtn();
 
-  /* ---------------- 渲染 ---------------- */
+  /* ---------------- 通用 ---------------- */
 
   function esc(str) {
-    return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    return String(str == null ? '' : str).replace(
+      /[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+    );
   }
+
+  function toast(msg, type) {
+    const stack = $('#toasts');
+    const el = document.createElement('div');
+    el.className = `toast ${type === 'error' ? 'error' : ''}`;
+    el.textContent = msg;
+    stack.appendChild(el);
+    setTimeout(() => {
+      el.classList.add('out');
+      setTimeout(() => el.remove(), 240);
+    }, 2200);
+    while (stack.children.length > 3) stack.firstChild.remove();
+  }
+
+  function copyText(text) {
+    const done = () => toast('号码已复制，发给朋友吧');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(fallback);
+    } else {
+      fallback();
+    }
+    function fallback() {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        done();
+      } catch {
+        toast('复制失败：' + text, 'error');
+      }
+    }
+  }
+
+  /* ---------------- 渲染 ---------------- */
 
   function renderMe() {
     $('#meNick').value = me.nick;
@@ -150,30 +202,30 @@
 
   function renderGames() {
     $('#gameGrid').innerHTML = GAMES.map((g) => {
-      const trailing = g.ready
-        ? '<span class="game-play">→</span>'
-        : g.id === 'more'
-        ? ''
-        : '<span class="game-play">即将上线</span>';
       if (!g.ready) {
         return `<div class="game-card is-soon">
-          <span class="game-emoji">${g.emoji}</span>
-          <div class="game-body">
+          <div class="gc-cover"><span class="gc-emoji">${g.emoji}</span></div>
+          <div class="gc-body">
             <h3>${esc(g.name)}</h3>
             <p>${esc(g.desc)}</p>
+            <span class="gc-play">即将上线</span>
           </div>
-          ${trailing}
         </div>`;
       }
-      return `<a class="game-card" href="${g.href}">
-        <span class="game-emoji">${g.emoji}</span>
-        <div class="game-body">
-          <h3>${esc(g.name)}${g.tag ? `<span class="badge">${esc(g.tag)}</span>` : ''}</h3>
-          <p>${esc(g.desc)}</p>
+      return `<a class="game-card" href="${g.href}" style="--c1:${g.c1};--c2:${g.c2}">
+        <div class="gc-cover">
+          <span class="gc-emoji">${g.emoji}</span>
+          ${g.tag ? `<span class="gc-tag">${esc(g.tag)}</span>` : ''}
         </div>
-        ${trailing}
+        <div class="gc-body">
+          <h3>${esc(g.name)}</h3>
+          <p>${esc(g.desc)}</p>
+          <span class="gc-play">开始游戏</span>
+        </div>
       </a>`;
     }).join('');
+
+    $('#gameCount').textContent = `${GAMES.filter((g) => g.ready).length} 款`;
   }
 
   function renderLinks() {
@@ -188,18 +240,22 @@
   }
 
   function friendLabel(f) {
-    return f.nick || presence.get(f.id)?.nick || `好友${f.id.slice(0, 2)}`;
+    return f.nick || (presence.get(f.id) || {}).nick || `好友${f.id.slice(0, 2)}`;
   }
 
   function sortedFriends() {
     return friends.slice().sort((a, b) => {
-      const oa = presence.get(a.id)?.online ? 1 : 0;
-      const ob = presence.get(b.id)?.online ? 1 : 0;
+      const oa = (presence.get(a.id) || {}).online ? 1 : 0;
+      const ob = (presence.get(b.id) || {}).online ? 1 : 0;
       if (oa !== ob) return ob - oa;
-      const ta = lastMessage(a.id)?.at || a.at || 0;
-      const tb = lastMessage(b.id)?.at || b.at || 0;
+      const ta = (lastMessage(a.id) || {}).at || a.at || 0;
+      const tb = (lastMessage(b.id) || {}).at || b.at || 0;
       return tb - ta;
     });
+  }
+
+  function totalUnread() {
+    return friends.reduce((sum, f) => sum + (ls.get(UNREAD_PREFIX + f.id, 0) || 0), 0);
   }
 
   function renderFriends() {
@@ -217,7 +273,7 @@
           : p.online
           ? '在线'
           : '点这里发消息';
-        return `<div class="friend ${activeId === f.id ? 'active' : ''}" data-id="${esc(f.id)}">
+        return `<div class="friend" data-id="${esc(f.id)}">
           <div class="f-avatar">${esc(friendLabel(f).slice(0, 1))}<i class="${p.online ? 'on' : ''}"></i></div>
           <div class="f-main">
             <div class="f-top"><b>${esc(friendLabel(f))}</b></div>
@@ -228,12 +284,15 @@
       })
       .join('');
 
-    updateTitle();
+    renderBadge();
   }
 
-  function updateTitle() {
-    const total = friends.reduce((sum, f) => sum + ls.get(UNREAD_PREFIX + f.id, 0), 0);
-    document.title = total ? `(${total}) 游戏大厅` : '游戏大厅';
+  function renderBadge() {
+    const n = totalUnread();
+    const badge = $('#friendBadge');
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.classList.toggle('hidden', n === 0);
+    document.title = n ? `(${n}) 游戏大厅` : '游戏大厅';
   }
 
   function fmtClock(ts) {
@@ -272,10 +331,61 @@
     body.scrollTop = body.scrollHeight;
   }
 
+  /* ---------------- 好友面板 ---------------- */
+
+  function setSheetMode(mode) {
+    const sheet = $('#friendSheet');
+    sheet.classList.toggle('mode-list', mode === 'list');
+    sheet.classList.toggle('mode-chat', mode === 'chat');
+  }
+
+  function openFriends(mode) {
+    const sheet = $('#friendSheet');
+    setSheetMode(mode || 'list');
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('sheet-open');
+    renderFriends();
+  }
+
+  function closeFriends() {
+    const sheet = $('#friendSheet');
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('sheet-open');
+    activeId = null;
+    setSheetMode('list');
+    renderFriends();
+  }
+
+  function openChat(id) {
+    activeId = id;
+    clearUnread(id);
+    openFriends('chat');
+    renderChat();
+    renderFriends();
+    setTimeout(() => {
+      if (window.matchMedia('(min-width: 641px)').matches) $('#chatInput').focus();
+    }, 300);
+  }
+
+  function backToList() {
+    activeId = null;
+    setSheetMode('list');
+    renderFriends();
+  }
+
+  function sendDm(text) {
+    if (!activeId || !text) return;
+    const cid = `c${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+    pushMessage(activeId, { dir: 'me', text, at: Date.now(), ok: false, cid });
+    renderChat();
+    send({ t: 'dm', to: activeId, text, cid });
+  }
+
   /* ---------------- 网络 ---------------- */
 
   let socket = null;
-  let connected = false;
   let retry = 0;
   let retryTimer = null;
   const queue = [];
@@ -291,7 +401,7 @@
   }
 
   function connect() {
-    if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) return;
+    if (socket && (socket.readyState === 0 || socket.readyState === 1)) return;
     let ws;
     try {
       ws = window.openSocket ? window.openSocket(wsEndpoint()) : new WebSocket(wsEndpoint());
@@ -301,9 +411,7 @@
     socket = ws;
 
     ws.addEventListener('open', () => {
-      connected = true;
       retry = 0;
-      updateConnState();
       if (ws.transport === 'sse' && !window.__hubCompatWarned) {
         window.__hubCompatWarned = true;
         toast('当前浏览器限制直连，已切换兼容连接');
@@ -331,9 +439,7 @@
     });
 
     ws.addEventListener('close', () => {
-      connected = false;
       socket = null;
-      updateConnState();
       scheduleReconnect();
     });
 
@@ -347,12 +453,6 @@
       retryTimer = null;
       connect();
     }, Math.min(1000 * retry, 6000));
-  }
-
-  function updateConnState() {
-    const pill = $('#onlinePill');
-    pill.style.opacity = connected ? '1' : '0.45';
-    pill.title = connected ? '已连接联机服务' : '正在连接联机服务…';
   }
 
   function syncWatch() {
@@ -378,7 +478,7 @@
     return false;
   }
 
-  /* ---------------- 消息处理 ---------------- */
+  /* ---------------- 消息 ---------------- */
 
   function handle(msg) {
     switch (msg.t) {
@@ -406,11 +506,7 @@
       case 'dm': {
         const from = msg.from || {};
         const added = upsertFriend(from.id, from.nick);
-        pushMessage(from.id, {
-          dir: 'them',
-          text: msg.text,
-          at: msg.at || Date.now()
-        });
+        pushMessage(from.id, { dir: 'them', text: msg.text, at: msg.at || Date.now() });
         if (activeId === from.id) {
           renderChat();
           clearUnread(from.id);
@@ -459,7 +555,7 @@
         break;
       }
       case 'invite-reply': {
-        const nick = msg.from?.nick || '好友';
+        const nick = (msg.from && msg.from.nick) || '好友';
         toast(msg.accept ? `${nick} 接受了邀请` : `${nick} 暂时没空`);
         break;
       }
@@ -486,56 +582,26 @@
   }
 
   function bumpUnread(id) {
-    const n = ls.get(UNREAD_PREFIX + id, 0) + 1;
-    ls.set(UNREAD_PREFIX + id, n);
-    updateTitle();
+    ls.set(UNREAD_PREFIX + id, (ls.get(UNREAD_PREFIX + id, 0) || 0) + 1);
+    renderBadge();
   }
 
   function clearUnread(id) {
     ls.set(UNREAD_PREFIX + id, 0);
-    updateTitle();
-  }
-
-  /* ---------------- 聊天抽屉 ---------------- */
-
-  function openChat(id) {
-    activeId = id;
-    $('#chatDrawer').classList.add('show');
-    $('#chatDrawer').setAttribute('aria-hidden', 'false');
-    document.body.classList.add('chat-open');
-    clearUnread(id);
-    renderChat();
-    renderFriends();
-    setTimeout(() => $('#chatInput').focus(), 260);
-  }
-
-  function closeChat() {
-    activeId = null;
-    $('#chatDrawer').classList.remove('show');
-    $('#chatDrawer').setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('chat-open');
-    renderFriends();
-  }
-
-  function sendDm(text) {
-    if (!activeId || !text) return;
-    const cid = `c${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
-    pushMessage(activeId, { dir: 'me', text, at: Date.now(), ok: false, cid });
-    renderChat();
-    send({ t: 'dm', to: activeId, text, cid });
+    renderBadge();
   }
 
   /* ---------------- 邀请 ---------------- */
 
   function showInvite(msg) {
     pendingInvite = msg;
-    $('#ibFrom').textContent = msg.from?.nick || '好友';
-    $('#ibAvatar').textContent = (msg.from?.nick || '友').slice(0, 1);
+    $('#ibFrom').textContent = (msg.from && msg.from.nick) || '好友';
+    $('#ibAvatar').textContent = ((msg.from && msg.from.nick) || '友').slice(0, 1);
     $('#ibGame').textContent = msg.gameName || '猜数字';
     $('#ibCode').textContent = msg.code;
     $('#inviteBanner').classList.add('show');
     beep('invite');
-    toast(`${msg.from?.nick || '好友'} 邀请你一起玩`);
+    toast(`${(msg.from && msg.from.nick) || '好友'} 邀请你一起玩`);
   }
 
   function hideInvite() {
@@ -552,44 +618,7 @@
     location.href = `猜数字/?invite=${encodeURIComponent(id)}`;
   }
 
-  /* ---------------- UI 事件 ---------------- */
-
-  function toast(msg, type) {
-    const stack = $('#toasts');
-    const el = document.createElement('div');
-    el.className = `toast ${type === 'error' ? 'error' : ''}`;
-    el.textContent = msg;
-    stack.appendChild(el);
-    setTimeout(() => {
-      el.classList.add('out');
-      setTimeout(() => el.remove(), 240);
-    }, 2200);
-    while (stack.children.length > 3) stack.firstChild.remove();
-  }
-
-  function copyText(text) {
-    const done = () => toast('号码已复制，发给朋友吧');
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done).catch(fallback);
-    } else {
-      fallback();
-    }
-    function fallback() {
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        done();
-      } catch {
-        toast('复制失败：' + text, 'error');
-      }
-    }
-  }
+  /* ---------------- 加好友 ---------------- */
 
   function addFriend() {
     const input = $('#friendCode');
@@ -625,7 +654,7 @@
       .catch(() => {});
   }
 
-  /* ---------------- 初始化 ---------------- */
+  /* ---------------- 事件 ---------------- */
 
   function bindEvents() {
     $('#meNick').addEventListener('change', () => {
@@ -640,6 +669,11 @@
 
     $('#copyId').addEventListener('click', () => copyText(me.id));
 
+    $('#btnFriends').addEventListener('click', () => openFriends('list'));
+    $('#btnCloseFriends').addEventListener('click', closeFriends);
+    $('#sheetBackdrop').addEventListener('click', closeFriends);
+    $('#btnChatBack').addEventListener('click', backToList);
+
     $('#btnAddFriend').addEventListener('click', addFriend);
     $('#friendCode').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -652,8 +686,6 @@
       const row = e.target.closest('.friend');
       if (row) openChat(row.dataset.id);
     });
-
-    $('#btnChatBack').addEventListener('click', closeChat);
 
     $('#btnInvite').addEventListener('click', () => {
       if (activeId) inviteFriend(activeId);
@@ -675,15 +707,16 @@
 
     $('#ibAccept').addEventListener('click', () => {
       if (!pendingInvite) return;
-      const { code } = pendingInvite;
-      const from = pendingInvite.from?.id;
+      const code = pendingInvite.code;
+      const from = pendingInvite.from && pendingInvite.from.id;
       if (from) send({ t: 'invite-reply', to: from, accept: true, code });
       hideInvite();
       location.href = `猜数字/?room=${encodeURIComponent(code)}`;
     });
     $('#ibIgnore').addEventListener('click', () => {
-      if (pendingInvite?.from?.id) {
-        send({ t: 'invite-reply', to: pendingInvite.from.id, accept: false, code: pendingInvite.code });
+      const from = pendingInvite && pendingInvite.from && pendingInvite.from.id;
+      if (from) {
+        send({ t: 'invite-reply', to: from, accept: false, code: pendingInvite.code });
       }
       hideInvite();
     });
@@ -695,15 +728,11 @@
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && activeId) closeChat();
-    });
-
-    window.addEventListener('beforeunload', () => {
-      try {
-        socket?.close();
-      } catch {
-        /* ignore */
-      }
+      if (e.key !== 'Escape') return;
+      const sheet = $('#friendSheet');
+      if (!sheet.classList.contains('open')) return;
+      if (sheet.classList.contains('mode-chat')) backToList();
+      else closeFriends();
     });
   }
 
@@ -712,6 +741,8 @@
     renderGames();
     renderLinks();
     renderFriends();
+    syncSoundBtn();
+    setSheetMode('list');
     bindEvents();
     connect();
     refreshStats();

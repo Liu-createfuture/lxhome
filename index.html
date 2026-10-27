@@ -9,7 +9,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f46e5'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='white'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="lobby.css?v=20261026-7" />
+    <link rel="stylesheet" href="lobby.css?v=20261027-2" />
   </head>
   <body>
     <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -24,8 +24,14 @@
               <p>和好友一起玩</p>
             </div>
           </div>
+
           <div class="hero-right">
-            <span class="pill" id="onlinePill"><i class="dot"></i><span id="onlineCount">0</span> 人在线</span>
+            <span class="pill"><i class="dot"></i><span id="onlineCount">0</span></span>
+            <button class="friend-btn" id="btnFriends">
+              <span class="fb-icon">👥</span>
+              <span class="fb-text">好友</span>
+              <b class="fb-badge hidden" id="friendBadge">0</b>
+            </button>
             <button class="icon-btn" id="btnSound" title="音效">🔔</button>
           </div>
         </div>
@@ -45,25 +51,11 @@
           <div class="panel-head">
             <div>
               <h2>游戏</h2>
-              <p class="sub">选一个开始，联机游戏可以邀请好友一起</p>
+              <p class="sub">点开就能玩，联机的可以喊上好友</p>
             </div>
+            <span class="count-badge" id="gameCount">0 款</span>
           </div>
           <div class="game-grid" id="gameGrid"></div>
-
-          <div class="howto">
-            <div class="howto-step">
-              <i>1</i>
-              <div><b>互相加好友</b><span>把你的号码发给对方，输入号码即可添加</span></div>
-            </div>
-            <div class="howto-step">
-              <i>2</i>
-              <div><b>点开好友聊天</b><span>约时间、聊两句，在线状态实时同步</span></div>
-            </div>
-            <div class="howto-step">
-              <i>3</i>
-              <div><b>「一起玩」邀请</b><span>对方接受后自动进同一个房间</span></div>
-            </div>
-          </div>
 
           <div class="panel-head mt">
             <div>
@@ -73,14 +65,22 @@
           </div>
           <div class="mini-links" id="miniLinks"></div>
         </section>
+      </main>
 
-        <aside class="panel friends-panel">
-          <div class="panel-head">
-            <div>
-              <h2>好友</h2>
-              <p class="sub" id="friendHint">加了之后可以聊天、邀请一起玩</p>
-            </div>
-            <span class="count-badge" id="friendCount">0</span>
+      <footer class="hub-foot">
+        好友与聊天记录只保存在你的浏览器 · 把站点放到公网，随时约朋友一起玩
+      </footer>
+    </div>
+
+    <!-- 好友面板：列表 / 聊天 二合一 -->
+    <div class="friend-sheet" id="friendSheet" aria-hidden="true">
+      <div class="sheet-backdrop" id="sheetBackdrop"></div>
+      <aside class="sheet-panel" role="dialog" aria-label="好友">
+        <div class="fs-view" id="fsListView">
+          <div class="fs-head">
+            <h2>好友</h2>
+            <span class="fs-count" id="friendCount">0</span>
+            <button class="fs-close" id="btnCloseFriends" aria-label="关闭">✕</button>
           </div>
 
           <div class="add-row">
@@ -95,29 +95,24 @@
             <p>还没有好友</p>
             <span>把你的号码 <b id="emptyId">----</b> 发给朋友，互相添加就能聊天</span>
           </div>
-        </aside>
-      </main>
-
-      <footer class="hub-foot">
-        好友与聊天记录只保存在你的浏览器 · 把站点放到公网，随时约朋友一起玩
-      </footer>
-    </div>
-
-    <!-- 聊天抽屉 -->
-    <div class="drawer" id="chatDrawer" aria-hidden="true">
-      <div class="dw-head">
-        <button class="dw-back" id="btnChatBack" aria-label="返回">←</button>
-        <div class="dw-title">
-          <b id="chatName">好友</b>
-          <span id="chatState">离线</span>
         </div>
-        <button class="dw-invite" id="btnInvite">一起玩</button>
-      </div>
-      <div class="dw-body" id="chatBody"></div>
-      <form class="dw-input" id="chatForm">
-        <input id="chatInput" placeholder="发消息…" maxlength="500" autocomplete="off" />
-        <button type="submit" id="btnSend">发送</button>
-      </form>
+
+        <div class="fs-view chat-view" id="fsChatView">
+          <div class="fs-head chat-head">
+            <button class="fs-back" id="btnChatBack" aria-label="返回好友列表">←</button>
+            <div class="chat-title">
+              <b id="chatName">好友</b>
+              <span id="chatState">离线</span>
+            </div>
+            <button class="chat-invite" id="btnInvite">一起玩</button>
+          </div>
+          <div class="chat-body" id="chatBody"></div>
+          <form class="chat-input" id="chatForm">
+            <input id="chatInput" placeholder="发消息…" maxlength="500" autocomplete="off" />
+            <button type="submit" id="btnSend">发送</button>
+          </form>
+        </div>
+      </aside>
     </div>
 
     <!-- 邀请横幅 -->
@@ -135,8 +130,8 @@
 
     <div class="toast-stack" id="toasts"></div>
 
-    <script src="猜数字/net-lite.js?v=20261026-7"></script>
-    <script src="猜数字/config.js?v=20261026-7"></script>
-    <script src="lobby.js?v=20261026-7"></script>
+    <script src="猜数字/net-lite.js?v=20261027-2"></script>
+    <script src="猜数字/config.js?v=20261027-2"></script>
+    <script src="lobby.js?v=20261027-2"></script>
   </body>
 </html>

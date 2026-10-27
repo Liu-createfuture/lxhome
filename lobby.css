@@ -1,5 +1,6 @@
 /* =========================================================
-   游戏大厅 · 样式（含移动端适配）
+   游戏大厅 2026-10-27
+   好友收进「好友」按钮 → 侧滑面板（列表 / 聊天二合一）
    ========================================================= */
 
 :root {
@@ -20,7 +21,6 @@
   --danger: #e0483c;
   --radius: 20px;
   --shadow: 0 24px 50px -30px rgba(24, 30, 62, 0.35);
-  --shadow-soft: 0 10px 26px -20px rgba(24, 30, 62, 0.5);
   --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", system-ui, sans-serif;
@@ -97,10 +97,10 @@ body::before {
   z-index: 1;
   max-width: 1120px;
   margin: 0 auto;
-  padding: 20px 26px calc(48px + var(--safe-b));
+  padding: 20px 26px calc(40px + var(--safe-b));
 }
 
-/* ---------------- 头部渐变卡 ---------------- */
+/* ---------------- 顶部渐变卡 ---------------- */
 
 .hero {
   position: relative;
@@ -119,7 +119,7 @@ body::before {
   right: -90px;
   top: -140px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.35), transparent 65%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.32), transparent 65%);
   pointer-events: none;
 }
 
@@ -147,19 +147,17 @@ body::before {
   font-size: 21px;
   background: rgba(255, 255, 255, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(6px);
 }
 .brand-text h1 {
   margin: 0;
   font-size: 18px;
-  letter-spacing: 0.3px;
   color: #fff;
+  letter-spacing: 0.3px;
 }
 .brand-text p {
   margin: 2px 0 0;
   font-size: 11.5px;
   color: rgba(255, 255, 255, 0.72);
-  letter-spacing: 0.6px;
 }
 
 .hero-right {
@@ -174,13 +172,12 @@ body::before {
   align-items: center;
   gap: 6px;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 11px;
   border-radius: 999px;
-  font-size: 12px;
+  font: 600 12px var(--mono);
   color: #fff;
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.24);
-  white-space: nowrap;
 }
 .pill .dot {
   width: 6px;
@@ -189,6 +186,47 @@ body::before {
   background: #7df0bb;
   box-shadow: 0 0 0 3px rgba(125, 240, 187, 0.22);
 }
+
+.friend-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font: 600 12.5px var(--font);
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+.friend-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+.friend-btn .fb-icon {
+  font-size: 13px;
+}
+.fb-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #ff4d4f;
+  color: #fff;
+  font: 600 10px/17px var(--mono);
+  text-align: center;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.55);
+}
+.fb-badge.hidden {
+  display: none;
+}
+
 .icon-btn {
   width: 34px;
   height: 34px;
@@ -221,7 +259,6 @@ body::before {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(8px);
 }
 .me-avatar {
   flex: 0 0 38px;
@@ -279,8 +316,8 @@ body::before {
   color: var(--primary);
   font: 600 12.5px var(--font);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .me-copy:hover {
   transform: translateY(-1px);
@@ -290,13 +327,10 @@ body::before {
   transform: scale(0.97);
 }
 
-/* ---------------- 布局 ---------------- */
+/* ---------------- 内容区 ---------------- */
 
 .layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 356px;
-  gap: 18px;
-  align-items: start;
+  display: block;
 }
 
 .panel {
@@ -328,15 +362,14 @@ body::before {
   margin: 5px 0 0;
   font-size: 12.5px;
   color: var(--muted);
-  line-height: 1.5;
 }
 .count-badge {
+  flex: 0 0 auto;
   font: 600 11px/1 var(--mono);
   color: var(--ink-2);
   background: var(--surface-3);
-  padding: 5px 9px;
+  padding: 6px 10px;
   border-radius: 999px;
-  flex: 0 0 auto;
 }
 
 /* ---------------- 游戏卡片 ---------------- */
@@ -344,112 +377,107 @@ body::before {
 .game-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .game-card {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 15px;
-  border-radius: 17px;
+  flex-direction: column;
+  border-radius: 18px;
+  overflow: hidden;
   background: #fff;
   border: 1px solid var(--line);
   text-decoration: none;
   color: inherit;
-  overflow: hidden;
-  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease,
-    border-color 0.18s ease;
-}
-.game-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.07), rgba(124, 58, 237, 0.02) 55%, transparent);
-  opacity: 0;
-  transition: opacity 0.18s ease;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 .game-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(79, 70, 229, 0.35);
-  box-shadow: 0 18px 32px -24px rgba(79, 70, 229, 0.95);
-}
-.game-card:hover::before {
-  opacity: 1;
+  transform: translateY(-4px);
+  border-color: rgba(79, 70, 229, 0.3);
+  box-shadow: 0 26px 44px -30px rgba(79, 70, 229, 0.95);
 }
 .game-card:active {
   transform: translateY(-1px) scale(0.995);
 }
 
-.game-emoji {
+.gc-cover {
   position: relative;
-  flex: 0 0 48px;
-  height: 48px;
+  height: 118px;
   display: grid;
   place-items: center;
-  font-size: 24px;
-  border-radius: 15px;
-  background: linear-gradient(135deg, #eef0ff, #f7f4ff);
-  border: 1px solid rgba(79, 70, 229, 0.12);
+  background: linear-gradient(135deg, var(--c1, #6366f1), var(--c2, #8b5cf6));
+  overflow: hidden;
 }
-.game-card:nth-child(2) .game-emoji {
-  background: linear-gradient(135deg, #e8f7f2, #f2fbf8);
-  border-color: rgba(14, 164, 114, 0.14);
+.gc-cover::after {
+  content: "";
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  right: -50px;
+  bottom: -90px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
 }
-.game-card:nth-child(3) .game-emoji {
-  background: linear-gradient(135deg, #fff4e6, #fffaf2);
-  border-color: rgba(224, 131, 0, 0.16);
+.gc-emoji {
+  font-size: 46px;
+  line-height: 1;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.18));
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.game-card:hover .gc-emoji {
+  transform: scale(1.08) rotate(-3deg);
+}
+.gc-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  font: 600 10px/1.4 var(--font);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
 }
 
-.game-body {
-  min-width: 0;
-  position: relative;
-}
-.game-body h3 {
-  margin: 0;
-  font-size: 14.5px;
+.gc-body {
+  padding: 13px 15px 15px;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.gc-body h3 {
+  margin: 0;
+  font-size: 15px;
   font-weight: 600;
 }
-.game-body p {
-  margin: 4px 0 0;
+.gc-body p {
+  margin: 0;
   font-size: 11.5px;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.55;
 }
-.badge {
-  font-size: 9.5px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 5px;
-  background: var(--a-soft);
-  color: var(--a);
-  letter-spacing: 0.2px;
-}
-.game-play {
-  position: relative;
-  margin-left: auto;
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(79, 70, 229, 0.12);
+.gc-play {
+  margin-top: auto;
+  padding-top: 9px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--primary);
-  font-size: 14px;
-  font-weight: 700;
-  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
-.game-card:hover .game-play {
-  background: var(--primary);
-  color: #fff;
-  transform: translateX(2px);
+.gc-play::after {
+  content: "→";
+  transition: transform 0.18s ease;
 }
+.game-card:hover .gc-play::after {
+  transform: translateX(3px);
+}
+
 .game-card.is-soon {
   background: var(--surface-2);
   border-style: dashed;
@@ -460,22 +488,22 @@ body::before {
   box-shadow: none;
   border-color: var(--line);
 }
-.game-card.is-soon::before {
-  display: none;
+.game-card.is-soon .gc-cover {
+  background: linear-gradient(135deg, #e7e9f2, #eff1f8);
 }
-.game-card.is-soon .game-play {
-  width: auto;
-  height: auto;
-  background: none;
+.game-card.is-soon .gc-emoji {
+  opacity: 0.65;
+  font-size: 38px;
+}
+.game-card.is-soon:hover .gc-emoji {
+  transform: none;
+}
+.game-card.is-soon .gc-play {
   color: var(--muted);
-  font-size: 11px;
   font-weight: 500;
-  border-radius: 0;
 }
-.game-card.is-soon .game-emoji {
-  background: #fff;
-  border-color: var(--line);
-  opacity: 0.75;
+.game-card.is-soon .gc-play::after {
+  content: "";
 }
 
 /* ---------------- 其他项目 ---------------- */
@@ -506,78 +534,106 @@ body::before {
   transform: translateY(-1px);
 }
 
-/* ---------------- 三步说明 ---------------- */
-
-.howto {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+.hub-foot {
   margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px dashed var(--line-strong);
-}
-.howto-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  padding: 12px;
-  border-radius: 13px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-}
-.howto-step i {
-  flex: 0 0 20px;
-  height: 20px;
-  border-radius: 7px;
-  display: grid;
-  place-items: center;
-  font: 700 11px/1 var(--mono);
-  font-style: normal;
-  color: #fff;
-  background: linear-gradient(135deg, var(--primary), var(--primary-2));
-}
-.howto-step b {
-  display: block;
-  font-size: 12.5px;
-  margin-bottom: 3px;
-}
-.howto-step span {
-  display: block;
-  font-size: 11px;
+  text-align: center;
+  font-size: 11.5px;
   color: var(--muted);
-  line-height: 1.55;
 }
 
-/* ---------------- 好友 ---------------- */
+/* ---------------- 好友面板 ---------------- */
 
-.friends-panel {
+.friend-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 18, 28, 0.36);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.sheet-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 388px;
+  max-width: 92vw;
+  background: var(--surface);
+  box-shadow: -30px 0 60px -40px rgba(16, 18, 28, 0.7);
+  border-left: 1px solid rgba(255, 255, 255, 0.8);
+  transform: translateX(102%);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 40px);
-  position: sticky;
-  top: 20px;
+  overflow: hidden;
 }
-.friend-list {
-  display: flex;
+.friend-sheet.open {
+  pointer-events: auto;
+}
+.friend-sheet.open .sheet-backdrop {
+  opacity: 1;
+}
+.friend-sheet.open .sheet-panel {
+  transform: none;
+}
+
+.fs-view {
+  display: none;
   flex-direction: column;
-  gap: 5px;
-  overflow-y: auto;
-  margin: 0 -6px;
-  padding: 0 6px;
-  scrollbar-width: thin;
+  flex: 1;
+  min-height: 0;
 }
-.friend-list::-webkit-scrollbar {
-  width: 6px;
+.friend-sheet.mode-list #fsListView {
+  display: flex;
 }
-.friend-list::-webkit-scrollbar-thumb {
-  background: rgba(20, 22, 31, 0.14);
-  border-radius: 99px;
+.friend-sheet.mode-chat #fsChatView {
+  display: flex;
+}
+
+.fs-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.fs-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.fs-count {
+  font: 600 11px/1 var(--mono);
+  color: var(--ink-2);
+  background: var(--surface-3);
+  padding: 5px 9px;
+  border-radius: 999px;
+}
+.fs-close {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.fs-close:hover {
+  background: var(--surface-3);
 }
 
 .add-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 14px;
+  padding: 12px 16px;
 }
 .add-row input {
   flex: 1;
@@ -614,21 +670,36 @@ body::before {
   color: #fff;
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
   cursor: pointer;
-  transition: filter 0.15s ease, transform 0.15s ease;
   white-space: nowrap;
-}
-.btn-add:hover {
-  filter: brightness(1.07);
 }
 .btn-add:active {
   transform: scale(0.97);
+}
+
+.friend-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px calc(14px + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.friend-list:empty {
+  flex: 0 0 auto;
+}
+.friend-list::-webkit-scrollbar {
+  width: 6px;
+}
+.friend-list::-webkit-scrollbar-thumb {
+  background: rgba(20, 22, 31, 0.14);
+  border-radius: 99px;
 }
 
 .friend {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 9px 10px;
+  padding: 10px;
   border-radius: 14px;
   cursor: pointer;
   border: 1px solid transparent;
@@ -638,14 +709,10 @@ body::before {
   background: var(--surface-2);
   border-color: var(--line);
 }
-.friend.active {
-  background: linear-gradient(180deg, rgba(79, 70, 229, 0.09), rgba(79, 70, 229, 0.03));
-  border-color: rgba(79, 70, 229, 0.25);
-}
 .f-avatar {
   position: relative;
-  flex: 0 0 38px;
-  height: 38px;
+  flex: 0 0 40px;
+  height: 40px;
   border-radius: 13px;
   display: grid;
   place-items: center;
@@ -704,15 +771,15 @@ body::before {
 }
 
 .friend-empty {
+  padding: 6px 24px 30px;
   text-align: center;
-  padding: 26px 12px 8px;
   color: var(--muted);
 }
 .friend-empty.hidden {
   display: none;
 }
 .fe-icon {
-  font-size: 26px;
+  font-size: 28px;
   margin-bottom: 8px;
 }
 .friend-empty p {
@@ -722,7 +789,7 @@ body::before {
 }
 .friend-empty span {
   font-size: 11.5px;
-  line-height: 1.6;
+  line-height: 1.7;
   display: block;
 }
 .friend-empty b {
@@ -731,77 +798,46 @@ body::before {
   letter-spacing: 1px;
 }
 
-/* ---------------- 聊天抽屉 ---------------- */
+/* ---------------- 聊天视图 ---------------- */
 
-.drawer {
-  position: fixed;
-  right: 24px;
-  bottom: calc(24px + var(--safe-b));
-  width: 372px;
-  height: 540px;
-  max-height: calc(100vh - 100px);
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border-radius: 20px;
-  box-shadow: 0 40px 80px -34px rgba(20, 22, 31, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  z-index: 60;
-  opacity: 0;
-  transform: translateY(16px) scale(0.98);
-  pointer-events: none;
-  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-  overflow: hidden;
-}
-.drawer.show {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-
-.dw-head {
-  display: flex;
-  align-items: center;
+.chat-head {
   gap: 10px;
-  padding: 11px 13px;
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, #fbfbff, #fff);
 }
-.dw-back {
-  border: 0;
-  background: var(--surface-2);
+.fs-back {
   width: 32px;
   height: 32px;
+  flex: 0 0 32px;
+  border: 0;
   border-radius: 10px;
-  cursor: pointer;
+  background: var(--surface-2);
   color: var(--ink-2);
   font-size: 15px;
-  transition: background 0.15s ease;
+  cursor: pointer;
 }
-.dw-back:hover {
+.fs-back:hover {
   background: var(--surface-3);
 }
-.dw-title {
+.chat-title {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  flex: 1;
 }
-.dw-title b {
+.chat-title b {
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.dw-title span {
+.chat-title span {
   font-size: 10.5px;
   color: var(--muted);
 }
-.dw-title span.on {
+.chat-title span.on {
   color: var(--a);
 }
-.dw-invite {
-  margin-left: auto;
+.chat-invite {
   flex: 0 0 auto;
   border: 0;
   border-radius: 10px;
@@ -811,17 +847,13 @@ body::before {
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
   cursor: pointer;
   white-space: nowrap;
-  transition: filter 0.15s ease;
 }
-.dw-invite:hover {
-  filter: brightness(1.07);
-}
-.dw-invite:disabled {
+.chat-invite:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.dw-body {
+.chat-body {
   flex: 1;
   overflow-y: auto;
   padding: 14px;
@@ -830,10 +862,10 @@ body::before {
   gap: 9px;
   background: #fbfbfe;
 }
-.dw-body::-webkit-scrollbar {
+.chat-body::-webkit-scrollbar {
   width: 6px;
 }
-.dw-body::-webkit-scrollbar-thumb {
+.chat-body::-webkit-scrollbar-thumb {
   background: rgba(20, 22, 31, 0.12);
   border-radius: 99px;
 }
@@ -842,7 +874,7 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  max-width: 78%;
+  max-width: 80%;
   animation: msgIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes msgIn {
@@ -893,7 +925,6 @@ body::before {
   font-size: 11.5px;
   border-radius: 10px;
 }
-
 .chat-empty {
   margin: auto;
   text-align: center;
@@ -902,14 +933,14 @@ body::before {
   line-height: 1.9;
 }
 
-.dw-input {
+.chat-input {
   display: flex;
   gap: 8px;
   padding: 10px 12px calc(12px + var(--safe-b));
   border-top: 1px solid var(--line);
   background: #fff;
 }
-.dw-input input {
+.chat-input input {
   flex: 1;
   min-width: 0;
   height: 42px;
@@ -922,12 +953,12 @@ body::before {
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-.dw-input input:focus {
+.chat-input input:focus {
   background: #fff;
   border-color: var(--primary);
   box-shadow: 0 0 0 4px var(--primary-soft);
 }
-.dw-input button {
+.chat-input button {
   flex: 0 0 auto;
   border: 0;
   border-radius: 12px;
@@ -937,7 +968,7 @@ body::before {
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
   cursor: pointer;
 }
-.dw-input button:active {
+.chat-input button:active {
   transform: scale(0.97);
 }
 
@@ -983,9 +1014,6 @@ body::before {
   font-size: 13px;
   line-height: 1.5;
   min-width: 0;
-}
-.ib-text b {
-  font-weight: 600;
 }
 .ib-text small {
   display: block;
@@ -1036,8 +1064,6 @@ body::before {
   gap: 8px;
   align-items: center;
   pointer-events: none;
-  width: max-content;
-  max-width: 90vw;
 }
 .toast {
   padding: 10px 17px;
@@ -1048,7 +1074,6 @@ body::before {
   animation: toastIn 0.24s cubic-bezier(0.22, 1, 0.36, 1);
   max-width: 90vw;
   text-align: center;
-  box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.8);
 }
 .toast.error {
   background: rgba(190, 48, 38, 0.95);
@@ -1073,54 +1098,27 @@ body::before {
   display: none !important;
 }
 
-/* ---------------- 页脚 ---------------- */
-
-.hub-foot {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 11.5px;
-  color: var(--muted);
-  letter-spacing: 0.2px;
-}
-
 /* ---------------- 响应式 ---------------- */
 
 @media (max-width: 900px) {
   .app {
-    padding: 12px 14px calc(36px + var(--safe-b));
+    padding: 12px 14px calc(28px + var(--safe-b));
   }
   .hero {
     border-radius: 20px;
     padding: 16px;
     margin-bottom: 12px;
   }
-  .layout {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .friends-panel {
-    position: static;
-    max-height: none;
-  }
-  .friend-list {
-    max-height: 300px;
-  }
-  .howto {
-    display: none;
-  }
   .panel {
     padding: 16px;
     border-radius: 18px;
   }
+  .gc-cover {
+    height: 104px;
+  }
 }
 
 @media (max-width: 640px) {
-  body.chat-open {
-    overflow: hidden;
-  }
-  .hero-head {
-    gap: 10px;
-  }
   .brand-text p {
     display: none;
   }
@@ -1135,8 +1133,14 @@ body::before {
   }
   .pill {
     height: 30px;
+    padding: 0 9px;
+  }
+  .friend-btn {
+    height: 32px;
     padding: 0 10px;
-    font-size: 11.5px;
+  }
+  .friend-btn .fb-text {
+    display: none;
   }
   .me {
     padding: 9px 10px;
@@ -1144,56 +1148,45 @@ body::before {
   }
   .game-grid {
     grid-template-columns: 1fr;
-    gap: 9px;
+    gap: 10px;
   }
   .game-card {
-    padding: 13px;
+    flex-direction: row;
+    align-items: stretch;
   }
-  .game-emoji {
-    flex-basis: 44px;
-    height: 44px;
-    font-size: 22px;
+  .gc-cover {
+    width: 96px;
+    height: auto;
+    flex: 0 0 96px;
   }
-  .game-card.is-soon .game-play {
-    font-size: 10.5px;
+  .gc-emoji {
+    font-size: 34px;
   }
-  .mini-link {
-    height: 34px;
-    padding: 0 11px;
-    font-size: 12px;
+  .gc-tag {
+    top: 8px;
+    left: 8px;
+    font-size: 9px;
+    padding: 2px 6px;
   }
-
-  /* 聊天抽屉全屏 */
-  .drawer {
-    right: 0;
-    bottom: 0;
-    left: 0;
-    width: auto;
-    height: 100%;
-    max-height: none;
-    border-radius: 0;
-    border: 0;
+  .gc-body {
+    padding: 12px 14px;
   }
-  .dw-head {
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-  .dw-back {
-    width: 36px;
-    height: 36px;
-  }
-  .dw-invite {
-    padding: 10px 14px;
-  }
-  .dw-body {
-    padding: 12px;
-  }
-  .msg {
-    max-width: 84%;
+  .gc-play {
+    padding-top: 6px;
   }
 
+  /* 好友面板全屏 */
+  .sheet-panel {
+    width: 100%;
+    max-width: none;
+    border-left: 0;
+  }
+  .friend-sheet .sheet-backdrop {
+    display: none;
+  }
+  body.sheet-open {
+    overflow: hidden;
+  }
   .invite-banner {
     top: auto;
     bottom: calc(14px + var(--safe-b));
@@ -1211,13 +1204,12 @@ body::before {
     min-width: 120px;
   }
   .ib-actions {
-    margin-left: 48px;
-    width: calc(100% - 48px);
+    width: 100%;
   }
   .ib-accept,
   .ib-ignore {
     flex: 1;
-    padding: 10px 12px;
+    padding: 11px 12px;
   }
   .toast-stack {
     bottom: calc(84px + var(--safe-b));
@@ -1227,9 +1219,5 @@ body::before {
 @media (max-width: 360px) {
   .pill {
     display: none;
-  }
-  .me-copy {
-    padding: 0 11px;
-    font-size: 12px;
   }
 }
