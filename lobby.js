@@ -57,6 +57,17 @@
       c2: '#f65e3b',
       ready: true
     },
+    {
+      id: 'jump',
+      name: '跳一跳',
+      emoji: '🐤',
+      desc: '按住蓄力，松手起跳 · 可联机竞速',
+      href: '跳一跳/',
+      tag: '可联机',
+      c1: '#38bdf8',
+      c2: '#6366f1',
+      ready: true
+    },
     { id: 'soon1', name: '敬请期待', emoji: '🎲', desc: '下一款游戏正在筹备中', ready: false },
     { id: 'more', name: '更多游戏', emoji: '＋', desc: '往大厅里加新游戏很简单', ready: false }
   ];

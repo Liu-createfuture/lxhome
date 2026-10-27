@@ -22,6 +22,7 @@ const MAX_GUESSES = 60;              // 单人单局猜测上限（安全阀）
 const RECONNECT_GRACE_MS = 90 * 1000; // 掉线后保留席位时长
 const ROOM_IDLE_MS = 30 * 60 * 1000;  // 空房间回收
 const COUNTDOWN_MS = 3000;
+const JUMP_TARGET = 20;              // 跳一跳：先到 20 层者胜
 
 /* ------------------------------------------------------------------ */
 /* 静态资源                                                            */
@@ -267,6 +268,9 @@ function buildState(room, index) {
   const me = room.players[index] || null;
   return {
     code: room.code,
+    game: room.game,
+    seed: room.status === 'waiting' ? 0 : room.seed || 0,
+    target: room.target || 0,
     status: room.status,
     you: index,
     hostIdx: room.players.findIndex((p) => p.token === room.hostToken),
@@ -274,7 +278,10 @@ function buildState(room, index) {
       nick: p.nick,
       connected: p.connected,
       attempts: p.guesses.length,
-      solved: Boolean(p.solvedAt)
+      solved: Boolean(p.solvedAt),
+      score: p.score || 0,
+      alive: p.alive !== false,
+      done: Boolean(p.done)
     })),
     myGuesses: me ? me.guesses : [],
     secret: room.status === 'finished' ? room.secret : null,
@@ -314,6 +321,9 @@ function attachPlayer(room, ws, nick) {
     guesses: [],
     solvedAt: 0,
     durationMs: null,
+    score: 0,
+    alive: true,
+    done: false,
     disconnectAt: 0,
     forfeitTimer: null
   };
@@ -321,9 +331,12 @@ function attachPlayer(room, ws, nick) {
   return player;
 }
 
-function createRoom(ws, nick) {
+function createRoom(ws, nick, game) {
   const room = {
     code: makeCode(),
+    game: game === 'jump' ? 'jump' : 'guess',
+    seed: 0,
+    target: game === 'jump' ? JUMP_TARGET : 0,
     status: 'waiting',
     players: [],
     hostToken: null,
@@ -359,8 +372,16 @@ function beginCountdown(room) {
     p.guesses = [];
     p.solvedAt = 0;
     p.durationMs = null;
+    p.score = 0;
+    p.alive = true;
+    p.done = false;
   });
-  room.secret = randomSecret();
+  if (room.game === 'jump') {
+    room.seed = Math.floor(Math.random() * 1e9);
+    room.secret = null;
+  } else {
+    room.secret = randomSecret();
+  }
   room.status = 'countdown';
   room.startAt = Date.now() + COUNTDOWN_MS;
   room.endAt = 0;
@@ -383,6 +404,18 @@ function beginCountdown(room) {
   }, COUNTDOWN_MS);
 
   return true;
+}
+
+function finishJump(room, winner, reason) {
+  if (room.status === 'finished') return;
+  clearCountdown(room);
+  room.status = 'finished';
+  room.endAt = Date.now();
+  room.winnerToken = winner ? winner.token : null;
+  room.winnerReason = reason || 'compare';
+  broadcastState(room);
+  const best = Math.max(...room.players.map((p) => p.score || 0));
+  toastRoom(room, winner ? winner.nick + ' 赢了！' : '平局，都是 ' + best + ' 层');
 }
 
 function finishRound(room, winner, reason) {
@@ -536,7 +569,7 @@ function registerConn(ws) {
     /* 创建房间 */
     if (msg.t === 'create') {
       if (conn.player) return fail('你已经在房间里了');
-      const { room, player } = createRoom(ws, msg.nick);
+      const { room, player } = createRoom(ws, msg.nick, msg.game);
       bindPlayer(conn, room, player, ws);
       return;
     }
@@ -608,8 +641,33 @@ function registerConn(ws) {
       return;
     }
 
+    /* 跳一跳：进度上报 */
+    if (msg.t === 'jump') {
+      if (room.game !== 'jump' || room.status !== 'playing') return;
+      const score = Math.max(0, Math.min(999, Number(msg.score) || 0));
+      if (score > (player.score || 0)) player.score = score;
+      player.alive = Boolean(msg.alive);
+      player.done = Boolean(msg.done) || !player.alive;
+      broadcastState(room);
+
+      const target = room.target || JUMP_TARGET;
+      const champ = room.players.find((p) => (p.score || 0) >= target);
+      if (champ) {
+        finishJump(room, champ, 'target');
+        return;
+      }
+      const active = room.players.filter((p) => p.connected);
+      if (active.length && active.every((p) => p.done)) {
+        const best = Math.max(...room.players.map((p) => p.score || 0));
+        const tops = room.players.filter((p) => (p.score || 0) === best);
+        finishJump(room, tops.length === 1 ? tops[0] : null, 'compare');
+      }
+      return;
+    }
+
     /* 提交猜测 */
     if (msg.t === 'guess') {
+      if (room.game === 'jump') return;
       if (room.status !== 'playing') return fail('现在还不能猜');
       if (player.solvedAt) return fail('你已经破解了本局');
       if (player.guesses.length >= MAX_GUESSES) return fail('本局猜测次数已达上限');
