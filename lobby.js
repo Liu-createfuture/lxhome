@@ -70,6 +70,28 @@
       c2: '#6366f1',
       ready: true
     },
+    {
+      id: 'sokoban',
+      name: '推箱子',
+      emoji: '📦',
+      desc: '把箱子推到点上 · 10 个关卡',
+      href: '推箱子/',
+      tag: '单人',
+      c1: '#b45309',
+      c2: '#e08a2e',
+      ready: true
+    },
+    {
+      id: 'adventure',
+      name: '冒险岛',
+      emoji: '🏝️',
+      desc: '横版跳跃 · 踩怪吃金币闯三关',
+      href: '冒险岛/',
+      tag: '单人',
+      c1: '#0ea5a4',
+      c2: '#0e7490',
+      ready: true
+    },
     { id: 'soon1', name: '敬请期待', emoji: '🎲', desc: '下一款游戏正在筹备中', ready: false },
     { id: 'more', name: '更多游戏', emoji: '＋', desc: '往大厅里加新游戏很简单', ready: false }
   ];
@@ -368,7 +390,9 @@
     return EMOJI_ONLY.test(t) && /\p{Extended_Pictographic}/u.test(t);
   }
 
-  function renderChat() {
+  /* 只更新聊天头部状态（在线 / 正在输入 / 在玩什么）
+     输入、在线状态变化时用它，避免整段消息重新渲染造成闪烁 */
+  function renderChatHead() {
     if (!activeId) return;
     const f = friends.find((x) => x.id === activeId);
     const p = presence.get(activeId) || {};
@@ -386,17 +410,57 @@
     stateEl.classList.toggle('busy', Boolean(st.act));
     $('#btnInvite').disabled = !p.online;
     $('#btnInvite').textContent = p.online ? '一起玩' : '离线';
+  }
+
+  /* 上一次渲染到的位置：只有新增的消息才播放入场动画 */
+  const rendered = { id: null, count: 0 };
+
+  /* 条数没变时只更新气泡下方的时间/已读文案，不动 DOM 结构 */
+  function refreshMeta(msgs) {
+    const nodes = $('#chatBody').querySelectorAll('.msg');
+    msgs.forEach((m, i) => {
+      if (m.dir === 'sys') return;
+      const node = nodes[i];
+      if (!node) return;
+      const meta = node.querySelector('.meta');
+      if (!meta) return;
+      let state = '';
+      if (m.dir === 'me') {
+        state = m.read ? '<span class="acked">已读</span>' : m.ok ? '已送达' : '待送达';
+      }
+      const html = `${fmtClock(m.at)}${state ? ' · ' + state : ''}`;
+      if (meta.innerHTML !== html) meta.innerHTML = html;
+    });
+  }
+
+  function renderChat(force) {
+    if (!activeId) return;
+    renderChatHead();
 
     const msgs = ls.get(CHAT_PREFIX + activeId, []);
     const body = $('#chatBody');
     if (!msgs.length) {
       body.innerHTML = `<div class="chat-empty">还没有聊天记录<br />打个招呼，或者点右上角「一起玩」邀请 TA</div>`;
+      rendered.id = activeId;
+      rendered.count = 0;
       return;
     }
+
+    /* 同一个会话、消息条数没变：只刷新状态文字，避免整段重绘 */
+    if (!force && rendered.id === activeId && msgs.length === rendered.count) {
+      refreshMeta(msgs);
+      return;
+    }
+
+    const start = rendered.id === activeId ? rendered.count : msgs.length;
+    const added = msgs.length > start;
+    const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 90;
+
     body.innerHTML = msgs
-      .map((m) => {
+      .map((m, i) => {
+        const fresh = i >= start ? ' is-new' : '';
         if (m.dir === 'sys') {
-          return `<div class="msg sys"><div class="bubble">${esc(m.text)}</div></div>`;
+          return `<div class="msg sys${fresh}"><div class="bubble">${esc(m.text)}</div></div>`;
         }
         const big = isBigEmoji(m.text);
         let state = '';
@@ -405,13 +469,15 @@
           else if (m.ok) state = '已送达';
           else state = '待送达';
         }
-        return `<div class="msg ${m.dir === 'me' ? 'mine' : 'them'}">
+        return `<div class="msg ${m.dir === 'me' ? 'mine' : 'them'}${fresh}">
           <div class="bubble${big ? ' big' : ''}">${esc(m.text)}</div>
           <div class="meta">${fmtClock(m.at)}${state ? ' · ' + state : ''}</div>
         </div>`;
       })
       .join('');
-    body.scrollTop = body.scrollHeight;
+    rendered.id = activeId;
+    rendered.count = msgs.length;
+    if (nearBottom || added) body.scrollTop = body.scrollHeight;
   }
 
   /* ---------------- 已读回执 ---------------- */
@@ -661,7 +727,7 @@
           if (item.nick) upsertFriend(item.id, item.nick);
         });
         renderFriends();
-        if (activeId) renderChat();
+        if (activeId) renderChatHead();
         break;
       }
       case 'presence': {
@@ -674,7 +740,7 @@
         });
         if (msg.nick) upsertFriend(msg.id, msg.nick);
         renderFriends();
-        if (activeId === msg.id) renderChat();
+        if (activeId === msg.id) renderChatHead();
         break;
       }
       case 'dm': {
@@ -719,11 +785,11 @@
         const from = msg.from || {};
         const p = presence.get(from.id) || {};
         presence.set(from.id, { ...p, typing: true });
-        if (activeId === from.id) renderChat();
+        if (activeId === from.id) renderChatHead();
         setTimeout(() => {
           const cur = presence.get(from.id) || {};
           presence.set(from.id, { ...cur, typing: false });
-          if (activeId === from.id) renderChat();
+          if (activeId === from.id) renderChatHead();
         }, 2500);
         break;
       }
@@ -843,11 +909,15 @@
 
   function inviteToGame(gameId) {
     const g = GAMES.find((x) => x.id === gameId);
-    if (!g || !inviteFor) return;
+    if (!g || !inviteFor) {
+      closeGamePicker();
+      return;
+    }
     const id = inviteFor;
     const st = stateOf(id);
     if (!st.online) {
       toast('对方不在线，等 TA 上线再邀请吧', 'error');
+      closeGamePicker();
       return;
     }
     closeGamePicker();
@@ -945,7 +1015,30 @@
         return;
       }
       const item = e.target.closest('.gp-item');
-      if (item && !item.disabled) inviteToGame(item.dataset.game);
+      if (item && !item.disabled) {
+        inviteToGame(item.dataset.game);
+        return;
+      }
+      if (!e.target.closest('.gp-card')) closeGamePicker();
+    });
+
+    /* 兜底：弹层打开时，在卡片外按下任何地方都直接关掉，避免卡住关不掉 */
+    document.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (!$('#gamePicker').classList.contains('show')) return;
+        if (!e.target.closest('.gp-card')) closeGamePicker();
+      },
+      true
+    );
+
+    /* 从其它页面后退回来时（bfcache）清掉可能残留的浮层 */
+    window.addEventListener('pageshow', () => {
+      closeGamePicker();
+      toggleEmoji(false);
+    });
+    window.addEventListener('pagehide', () => {
+      $('#gamePicker').classList.remove('show');
     });
 
     $('#btnEmoji').addEventListener('click', () => toggleEmoji());

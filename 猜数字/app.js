@@ -1326,6 +1326,7 @@
     if (window.HubFriends) {
       HubFriends.mount({
         send: (o) => send(o),
+        anchor: '.top-actions',
         game: { id: 'guess', name: '猜数字' },
         room: () => (net.code ? { code: net.code, game: 'guess', name: '猜数字' } : null),
         createRoom: (fid) => {

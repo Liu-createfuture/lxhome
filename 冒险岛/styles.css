@@ -1,0 +1,432 @@
+/* =========================================================
+   冒险岛 · 样式（清爽海岛风）
+   ========================================================= */
+
+:root {
+  --bg: #eaf4ff;
+  --ink: #10202e;
+  --ink-2: #486175;
+  --muted: #8598a8;
+  --line: rgba(16, 32, 46, 0.1);
+  --line-strong: rgba(16, 32, 46, 0.18);
+  --surface: #ffffff;
+  --surface-2: #f1f7fc;
+  --primary: #0e7490;
+  --primary-2: #0ea5a4;
+  --primary-soft: rgba(14, 116, 144, 0.1);
+  --shadow: 0 30px 60px -40px rgba(13, 60, 80, 0.85);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", system-ui, sans-serif;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font);
+  color: var(--ink);
+  background: linear-gradient(180deg, #eaf4ff 0%, #dff0fa 46%, #eaf7ef 100%);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 1080px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 16px 18px calc(26px + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------------- 顶栏 ---------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 34px -30px rgba(13, 60, 80, 0.8);
+  backdrop-filter: blur(12px);
+}
+
+.back-home {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 600 12px/1 var(--font);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.back-home:hover {
+  background: #fff;
+  color: var(--primary);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.logo {
+  width: 36px;
+  height: 34px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  font-size: 17px;
+  background: linear-gradient(135deg, #34c9c0, #0e7490);
+  box-shadow: 0 8px 16px -10px rgba(14, 116, 144, 0.9);
+}
+.brand-text h1 {
+  margin: 0;
+  font-size: 15.5px;
+  white-space: nowrap;
+}
+.brand-text p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.hud {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.stat {
+  min-width: 62px;
+  padding: 5px 10px;
+  border-radius: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+.stat span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+}
+.stat b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 1px;
+  font: 700 13px/1.3 var(--font);
+  font-variant-numeric: tabular-nums;
+}
+.coin-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe98a, #f0a91b);
+  box-shadow: 0 0 0 1px rgba(240, 169, 27, 0.35);
+}
+
+/* ---------------- 画面 ---------------- */
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.canvas-wrap {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: #bfe6ff;
+  line-height: 0;
+}
+canvas {
+  display: block;
+  touch-action: none;
+}
+
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(16, 32, 46, 0.5);
+  color: #fff;
+  font: 500 11.5px/1 var(--font);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hintFade 0.4s ease 3s forwards;
+}
+@keyframes hintFade {
+  to {
+    opacity: 0;
+  }
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: #ff5252;
+  opacity: 0;
+  pointer-events: none;
+}
+.flash.on {
+  animation: flashHit 0.45s ease;
+}
+@keyframes flashHit {
+  0% {
+    opacity: 0.34;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------------- 触屏按键 ---------------- */
+
+.touch {
+  display: none;
+  width: 100%;
+  max-width: 560px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.pad {
+  display: flex;
+  gap: 10px;
+}
+.tbtn {
+  width: 68px;
+  height: 60px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 26px -20px rgba(13, 60, 80, 0.9);
+  color: var(--ink);
+  font: 700 22px/1 var(--font);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+.tbtn:active,
+.tbtn.hold {
+  transform: scale(0.95);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.tbtn.jump {
+  width: 82px;
+  height: 68px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  color: #fff;
+  border-color: transparent;
+  font-size: 18px;
+}
+.tbtn.jump:active,
+.tbtn.jump.hold {
+  background: linear-gradient(135deg, #0b5f78, #0b8a89);
+  color: #fff;
+}
+
+.tip {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* ---------------- 弹窗 ---------------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(10, 40, 55, 0.45);
+  backdrop-filter: blur(4px);
+}
+.modal.show {
+  display: flex;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+.modal-card {
+  width: 100%;
+  max-width: 320px;
+  padding: 22px 20px 18px;
+  border-radius: 22px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 40px 70px -40px rgba(6, 30, 42, 0.9);
+  animation: cardIn 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+.modal-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+.modal-card h2 {
+  margin: 8px 0 4px;
+  font-size: 19px;
+}
+.modal-card p {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  height: 42px;
+  padding: 0 16px;
+  flex: 1;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 600 13px/1 var(--font);
+  cursor: pointer;
+}
+.btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 12px 22px -14px rgba(14, 116, 144, 0.9);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+
+/* ---------------- toast ---------------- */
+
+.toast-stack {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+.toast {
+  padding: 9px 15px;
+  border-radius: 12px;
+  background: rgba(16, 32, 46, 0.9);
+  color: #fff;
+  font: 500 12px/1.4 var(--font);
+  animation: toastIn 0.2s ease;
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* ---------------- 响应式 ---------------- */
+
+@media (max-width: 640px) {
+  .app {
+    padding: 8px 8px calc(10px + var(--safe-b));
+    gap: 8px;
+  }
+  .topbar {
+    padding: 7px 9px;
+    gap: 7px;
+  }
+  .brand-text p {
+    display: none;
+  }
+  .brand-text h1 {
+    font-size: 14.5px;
+  }
+  .logo {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    font-size: 15px;
+  }
+  .stat {
+    min-width: 48px;
+    padding: 4px 7px;
+  }
+  .stat b {
+    font-size: 12px;
+  }
+  .stat:first-child {
+    display: none;
+  }
+  .canvas-wrap {
+    border-radius: 16px;
+  }
+  .touch {
+    display: flex;
+  }
+  .tip {
+    display: none;
+  }
+  .hint {
+    bottom: 8px;
+    font-size: 10.5px;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand-text {
+    display: none;
+  }
+}

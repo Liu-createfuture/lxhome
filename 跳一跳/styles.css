@@ -105,6 +105,7 @@ body {
 .brand-text h1 {
   margin: 0;
   font-size: 15.5px;
+  white-space: nowrap;
 }
 .brand-text p {
   margin: 2px 0 0;
@@ -496,5 +497,22 @@ body {
   }
   .stage {
     border-radius: 16px;
+  }
+}
+
+/* 小屏顶栏空间紧张：只留游戏图标，把分数与联机按钮保住 */
+@media (max-width: 480px) {
+  .brand-text {
+    display: none;
+  }
+  .hud {
+    gap: 6px;
+  }
+  .stat {
+    min-width: 44px;
+    padding: 4px 6px;
+  }
+  .topbar {
+    gap: 6px;
   }
 }

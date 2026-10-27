@@ -76,6 +76,10 @@
 .hf-btn:hover{transform:translateY(-1px);box-shadow:0 18px 32px -18px rgba(20,22,31,.9)}
 .hf-btn b{position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#e0483c;color:#fff;font:700 10px/17px ui-monospace,monospace;text-align:center}
 .hf-btn b.hidden{display:none}
+.hf-btn.is-inline{position:relative;right:auto;bottom:auto;height:32px;padding:0 10px;gap:5px;border-radius:9px;background:#fff;box-shadow:none;font-size:12px;backdrop-filter:none}
+.hf-btn.is-inline:hover{transform:none;box-shadow:0 6px 14px -10px rgba(20,22,31,.9)}
+.hf-btn.is-inline b{position:static;min-width:15px;height:15px;padding:0 4px;font-size:9px;line-height:15px;transform:none}
+@media (max-width:640px){.hf-btn.is-inline{padding:0 8px;font-size:11.5px}.hf-btn.is-inline span:first-child{display:none}}
 .hf-sheet{position:fixed;inset:0;z-index:80;display:none}
 .hf-sheet.open{display:block}
 .hf-backdrop{position:absolute;inset:0;background:rgba(16,18,28,.36);backdrop-filter:blur(3px);animation:hfFade .18s ease}
@@ -154,6 +158,12 @@
       </div>
       <div class="hf-toasts" id="hfToasts"></div>
     `;
+    const anchor = cfg.anchor ? document.querySelector(cfg.anchor) : null;
+    const btn = wrap.querySelector('#hfBtn');
+    if (btn && anchor) {
+      btn.classList.add('is-inline');
+      anchor.insertBefore(btn, anchor.firstChild);
+    }
     while (wrap.firstElementChild) document.body.appendChild(wrap.firstElementChild);
   }
 

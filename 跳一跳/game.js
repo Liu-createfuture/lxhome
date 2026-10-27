@@ -974,6 +974,7 @@
     if (window.HubFriends) {
       HubFriends.mount({
         send: (o) => send(o),
+        anchor: '.hud',
         game: { id: 'jump', name: '跳一跳' },
         room: () => (S.roomCode ? { code: S.roomCode, game: 'jump', name: '跳一跳' } : null),
         createRoom: (fid) => {

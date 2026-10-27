@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#f7f3ea" />
+    <title>推箱子 · 游戏大厅</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23b45309'/%3E%3Ctext x='32' y='45' font-size='32' text-anchor='middle' fill='white'%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css?v=20261027-3" />
+  </head>
+  <body>
+    <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+    <div class="app">
+      <header class="topbar">
+        <a class="back-home" href="../" title="返回游戏大厅">← 大厅</a>
+        <div class="brand">
+          <div class="logo">📦</div>
+          <div class="brand-text">
+            <h1>推箱子</h1>
+            <p>把所有箱子推到点上</p>
+          </div>
+        </div>
+        <div class="hud">
+          <div class="stat">
+            <span>关卡</span>
+            <b id="lvLabel">1 / 10</b>
+          </div>
+          <div class="stat">
+            <span>步数</span>
+            <b id="moves">0</b>
+          </div>
+          <div class="stat">
+            <span>最佳</span>
+            <b id="best">—</b>
+          </div>
+        </div>
+      </header>
+
+      <main class="stage">
+        <div class="board-shell">
+          <div class="board" id="board">
+            <div class="cells" id="cells"></div>
+            <div class="sprites" id="sprites"></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="btn" id="btnUndo">撤销</button>
+          <button class="btn primary" id="btnReset">重来</button>
+          <button class="btn" id="btnPrev">上一关</button>
+          <button class="btn" id="btnNext">下一关</button>
+        </div>
+
+        <div class="dpad" id="dpad" aria-label="方向键">
+          <button data-dir="up" aria-label="上">↑</button>
+          <button data-dir="left" aria-label="左">←</button>
+          <button data-dir="down" aria-label="下">↓</button>
+          <button data-dir="right" aria-label="右">→</button>
+        </div>
+
+        <div class="levels" id="levels"></div>
+        <p class="tip">方向键 / WASD 移动 · Z 撤销 · R 重来 · 手机可直接滑动棋盘</p>
+      </main>
+    </div>
+
+    <div class="modal" id="winModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-emoji" id="winEmoji">🎉</div>
+        <h2 id="winTitle">过关！</h2>
+        <p id="winText">用了 0 步</p>
+        <div class="modal-actions">
+          <button class="btn primary" id="btnWinNext">下一关</button>
+          <button class="btn" id="btnWinReplay">再玩一次</button>
+        </div>
+        <button class="modal-link" id="btnWinClose">看看棋盘</button>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toasts"></div>
+
+    <script src="levels.js?v=20261027-3"></script>
+    <script src="game.js?v=20261027-3"></script>
+  </body>
+</html>
