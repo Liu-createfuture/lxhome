@@ -1342,7 +1342,26 @@
     });
   }
 
+  /* 用 file:// 直接打开时，浏览器不会把「猜数字/」解析成页面，只会列目录。
+     这里明确告诉人怎么启动，并且不让点进列表页。 */
+  function guardFileProtocol() {
+    if (location.protocol !== 'file:') return;
+    $('#fileWarn').classList.remove('hidden');
+    document.addEventListener(
+      'click',
+      (e) => {
+        const row = e.target.closest('.g-row');
+        if (!row || row.classList.contains('is-soon')) return;
+        e.preventDefault();
+        toast('请先双击「启动游戏厅.bat」，再从 127.0.0.1:8787 打开', 'error');
+        $('#fileWarn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      },
+      true
+    );
+  }
+
   function init() {
+    guardFileProtocol();
     renderMe();
     renderGames();
     renderLinks();
