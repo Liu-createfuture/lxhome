@@ -223,7 +223,7 @@
   function renderMe() {
     $('#meNick').value = me.nick;
     $('#meId').textContent = me.id;
-    $('#emptyId').textContent = me.id;
+    $('#selfId').textContent = me.id;
     $('#meAvatar').textContent = (me.nick || '玩').slice(0, 1);
   }
 
@@ -261,6 +261,7 @@
   }
 
   function friendLabel(f) {
+    if (f && f.remark) return f.remark;
     return f.nick || (presence.get(f.id) || {}).nick || `好友${f.id.slice(0, 2)}`;
   }
 
@@ -312,32 +313,61 @@
     return friends.reduce((sum, f) => sum + (ls.get(UNREAD_PREFIX + f.id, 0) || 0), 0);
   }
 
+  let searchText = '';
+
+  function fmtRowTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return fmtClock(ts);
+    const y = new Date(now.getTime() - 86400000);
+    if (d.toDateString() === y.toDateString()) return '昨天';
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
+  function friendRow(f) {
+    const st = stateOf(f.id);
+    const last = lastMessage(f.id);
+    const unread = ls.get(UNREAD_PREFIX + f.id, 0) || 0;
+    const preview = last
+      ? `${last.dir === 'me' ? '我：' : ''}${last.text}`
+      : st.text;
+    const dot = st.online ? (st.act ? 'busy' : 'on') : '';
+    return `<div class="friend" data-id="${esc(f.id)}">
+      <span class="f-avatar">${esc(friendLabel(f).slice(0, 1))}<i class="${dot}"></i></span>
+      <div class="f-main">
+        <b class="f-name">${esc(friendLabel(f))}</b>
+        <span class="f-sub${st.act ? ' busy' : ''}">${esc(preview)}</span>
+      </div>
+      <div class="f-meta">
+        <span class="f-time">${fmtRowTime((last && last.at) || f.at)}</span>
+        ${unread ? `<span class="f-unread">${unread > 99 ? '99+' : unread}</span>` : ''}
+      </div>
+      <button class="f-more" type="button" data-more="${esc(f.id)}" aria-label="好友资料">⋯</button>
+    </div>`;
+  }
+
   function renderFriends() {
-    const list = sortedFriends();
     $('#friendCount').textContent = friends.length;
+    $('#selfId').textContent = me.id;
+    $('#searchRow').classList.toggle('hidden', friends.length < 5);
     $('#friendEmpty').classList.toggle('hidden', friends.length > 0);
 
-    $('#friendList').innerHTML = list
-      .map((f) => {
-        const p = presence.get(f.id) || {};
-        const st = stateOf(f.id);
-        const last = lastMessage(f.id);
-        const unread = ls.get(UNREAD_PREFIX + f.id, 0);
-        const preview = last
-          ? `${last.dir === 'me' ? '我：' : ''}${last.text}`
-          : st.online
-          ? '点这里发消息'
-          : '离线 · 消息会暂存';
-        return `<div class="friend" data-id="${esc(f.id)}">
-          <div class="f-avatar">${esc(friendLabel(f).slice(0, 1))}<i class="${p.online ? (st.act ? 'busy' : 'on') : ''}"></i></div>
-          <div class="f-main">
-            <div class="f-top"><b>${esc(friendLabel(f))}</b><span class="f-state ${st.cls}">${esc(st.text)}</span></div>
-            <div class="f-sub">${esc(preview)}</div>
-          </div>
-          ${unread ? `<span class="f-unread">${unread > 99 ? '99+' : unread}</span>` : ''}
-        </div>`;
-      })
-      .join('');
+    const q = searchText.trim().toLowerCase();
+    const hit = (f) => !q || friendLabel(f).toLowerCase().includes(q) || f.id.toLowerCase().includes(q);
+    const list = sortedFriends().filter(hit);
+    const online = list.filter((f) => stateOf(f.id).online);
+    const offline = list.filter((f) => !stateOf(f.id).online);
+
+    let html = '';
+    if (online.length) {
+      html += `<div class="f-group">在线 ${online.length}</div>` + online.map(friendRow).join('');
+    }
+    if (offline.length) {
+      html += `<div class="f-group">离线 ${offline.length}</div>` + offline.map(friendRow).join('');
+    }
+    if (!html && friends.length) html = '<p class="friend-none">没有匹配的好友</p>';
+    $('#friendList').innerHTML = html;
 
     renderOnlineStrip();
     renderBadge();
@@ -384,7 +414,7 @@
     stateEl.classList.toggle('on', Boolean(p.online) && !p.typing && !st.act);
     stateEl.classList.toggle('busy', Boolean(st.act));
     $('#btnInvite').disabled = !p.online;
-    $('#btnInvite').textContent = p.online ? '一起玩' : '离线';
+    $('#btnInvite').textContent = '一起玩';
   }
 
   /* 上一次渲染到的位置：只有新增的消息才播放入场动画 */
@@ -408,6 +438,28 @@
     });
   }
 
+  function chatNameOf() {
+    const f = friends.find((x) => x.id === activeId);
+    return f ? friendLabel(f) : '好友';
+  }
+
+  function dayLabel(ts) {
+    const d = new Date(ts);
+    const now = new Date();
+    const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const gap = Math.round((day(now) - day(d)) / 86400000);
+    if (gap <= 0) return '今天';
+    if (gap === 1) return '昨天';
+    if (d.getFullYear() === now.getFullYear()) return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+    return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+  }
+
+  function updateToBottom() {
+    const body = $('#chatBody');
+    const far = body.scrollHeight - body.scrollTop - body.clientHeight > 120;
+    $('#btnToBottom').classList.toggle('hidden', !far);
+  }
+
   function renderChat(force) {
     if (!activeId) return;
     renderChatHead();
@@ -415,9 +467,17 @@
     const msgs = ls.get(CHAT_PREFIX + activeId, []);
     const body = $('#chatBody');
     if (!msgs.length) {
-      body.innerHTML = `<div class="chat-empty">还没说过话<br />打个招呼，或点右上角「一起玩」直接拉一局</div>`;
+      body.innerHTML = `<div class="chat-empty">
+        <p>和 ${esc(chatNameOf())} 还没说过话</p>
+        <div class="quick">
+          <button type="button" data-quick="在吗？">在吗？</button>
+          <button type="button" data-quick="来一局？">来一局？</button>
+          <button type="button" data-quick="等我一下">等我一下</button>
+        </div>
+      </div>`;
       rendered.id = activeId;
       rendered.count = 0;
+      $('#btnToBottom').classList.add('hidden');
       return;
     }
 
@@ -431,28 +491,37 @@
     const added = msgs.length > start;
     const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 90;
 
-    body.innerHTML = msgs
-      .map((m, i) => {
-        const fresh = i >= start ? ' is-new' : '';
-        if (m.dir === 'sys') {
-          return `<div class="msg sys${fresh}"><div class="bubble">${esc(m.text)}</div></div>`;
-        }
-        const big = isBigEmoji(m.text);
-        let state = '';
-        if (m.dir === 'me') {
-          if (m.read) state = `<span class="acked">已读</span>`;
-          else if (m.ok) state = '已送达';
-          else state = '待送达';
-        }
-        return `<div class="msg ${m.dir === 'me' ? 'mine' : 'them'}${fresh}">
-          <div class="bubble${big ? ' big' : ''}">${esc(m.text)}</div>
-          <div class="meta">${fmtClock(m.at)}${state ? ' · ' + state : ''}</div>
-        </div>`;
-      })
-      .join('');
+    let html = '';
+    let lastDay = '';
+    msgs.forEach((m, i) => {
+      const fresh = i >= start ? ' is-new' : '';
+      const day = dayLabel(m.at);
+      if (day !== lastDay) {
+        html += `<div class="chat-day">${day}</div>`;
+        lastDay = day;
+      }
+      if (m.dir === 'sys') {
+        html += `<div class="msg sys${fresh}"><div class="bubble">${esc(m.text)}</div></div>`;
+        return;
+      }
+      const next = msgs[i + 1];
+      const endOfRun = !next || next.dir !== m.dir || next.at - m.at > 5 * 60 * 1000;
+      let state = '';
+      if (m.dir === 'me' && endOfRun) {
+        state = m.read ? '<span class="acked">已读</span>' : m.ok ? '已送达' : '待送达';
+      }
+      const big = isBigEmoji(m.text);
+      html += `<div class="msg ${m.dir === 'me' ? 'mine' : 'them'}${fresh}">
+        <div class="bubble${big ? ' big' : ''}">${esc(m.text)}</div>
+        ${endOfRun ? `<div class="meta">${fmtClock(m.at)}${state ? ' · ' + state : ''}</div>` : ''}
+      </div>`;
+    });
+
+    body.innerHTML = html;
     rendered.id = activeId;
     rendered.count = msgs.length;
     if (nearBottom || added) body.scrollTop = body.scrollHeight;
+    updateToBottom();
   }
 
   /* ---------------- 已读回执 ---------------- */
@@ -536,10 +605,21 @@
 
   /* ---------------- 好友面板 ---------------- */
 
+  let infoId = null;
+  let armed = null;
+  let armTimer = null;
+
   function setSheetMode(mode) {
     const sheet = $('#friendSheet');
     sheet.classList.toggle('mode-list', mode === 'list');
     sheet.classList.toggle('mode-chat', mode === 'chat');
+    sheet.classList.toggle('mode-info', mode === 'info');
+  }
+
+  function toggleChatMenu(force) {
+    const menu = $('#chatMenu');
+    const show = force == null ? menu.hidden : Boolean(force);
+    menu.hidden = !show;
   }
 
   function openFriends(mode) {
@@ -557,13 +637,18 @@
     sheet.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('sheet-open');
     activeId = null;
+    infoId = null;
+    searchText = '';
+    $('#friendSearch').value = '';
     toggleEmoji(false);
+    toggleChatMenu(false);
     setSheetMode('list');
     renderFriends();
   }
 
   function openChat(id) {
     activeId = id;
+    infoId = null;
     clearUnread(id);
     openFriends('chat');
     renderChat();
@@ -576,9 +661,64 @@
 
   function backToList() {
     activeId = null;
+    infoId = null;
     toggleEmoji(false);
+    toggleChatMenu(false);
     setSheetMode('list');
     renderFriends();
+  }
+
+  /* 好友资料：备注、邀请、清空、删除 */
+  function openInfo(id) {
+    infoId = id || activeId;
+    if (!infoId) return;
+    toggleEmoji(false);
+    toggleChatMenu(false);
+    renderInfo();
+    setSheetMode('info');
+  }
+
+  function renderInfo() {
+    const f = friends.find((x) => x.id === infoId);
+    if (!f) {
+      backToList();
+      return;
+    }
+    armed = null;
+    const st = stateOf(f.id);
+    $('#infoBody').innerHTML = `<div class="info-card">
+        <span class="info-avatar">${esc(friendLabel(f).slice(0, 1))}</span>
+        <div>
+          <b>${esc(friendLabel(f))}</b>
+          <em class="${st.act ? 'busy' : ''}">${esc(st.text)}</em>
+        </div>
+      </div>
+      <label class="info-field">
+        <span>备注</span>
+        <input id="infoRemark" maxlength="12" value="${esc(f.remark || '')}" placeholder="只在本机显示" autocomplete="off" />
+      </label>
+      <p class="info-meta">号码 ${esc(f.id)}</p>
+      <div class="info-actions">
+        <button class="btn primary" type="button" data-act="invite"${st.online ? '' : ' disabled'}>邀请一起玩</button>
+        <button class="btn" type="button" data-act="clear">清空聊天</button>
+        <button class="btn danger" type="button" data-act="remove">删除好友</button>
+      </div>
+      <p class="info-note">聊天记录只保存在这台设备上，删掉好友会一并清掉你们之间的记录。</p>`;
+  }
+
+  function removeFriend(id) {
+    const idx = friends.findIndex((x) => x.id === id);
+    if (idx < 0) return;
+    friends.splice(idx, 1);
+    saveFriends();
+    ls.set(CHAT_PREFIX + id, []);
+    ls.set(UNREAD_PREFIX + id, 0);
+    syncWatch();
+    activeId = null;
+    infoId = null;
+    setSheetMode('list');
+    renderFriends();
+    toast('已删除好友');
   }
 
   function sendDm(text) {
@@ -902,26 +1042,33 @@
 
   /* ---------------- 加好友 ---------------- */
 
+  function addNote(text, isError) {
+    const el = $('#addNote');
+    el.textContent = text;
+    el.classList.toggle('is-error', Boolean(isError));
+  }
+
   function addFriend() {
     const input = $('#friendCode');
     const id = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!/^[A-Z0-9]{4,16}$/.test(id)) {
-      toast('号码是 4-16 位字母数字', 'error');
+      addNote('号码是 4-16 位的字母或数字', true);
+      input.focus();
       return;
     }
     if (id === me.id) {
-      toast('这是你自己的号码', 'error');
+      addNote('这是你自己的号码', true);
       return;
     }
     if (friends.some((f) => f.id === id)) {
-      toast('已经在好友列表里了');
+      addNote('已经在好友列表里了', true);
       return;
     }
     upsertFriend(id, '');
     syncWatch();
     renderFriends();
     input.value = '';
-    toast('已添加，点开就能聊天');
+    addNote('已添加。等对方也加你，就能互相说话了', false);
   }
 
   /* ---------------- 统计 ---------------- */
@@ -964,9 +1111,22 @@
       }
     });
 
+    $('#selfCopy').addEventListener('click', () => copyText(me.id));
+
     $('#friendList').addEventListener('click', (e) => {
+      const more = e.target.closest('[data-more]');
+      if (more) {
+        e.stopPropagation();
+        openInfo(more.dataset.more);
+        return;
+      }
       const row = e.target.closest('.friend');
       if (row) openChat(row.dataset.id);
+    });
+
+    $('#friendSearch').addEventListener('input', () => {
+      searchText = $('#friendSearch').value;
+      renderFriends();
     });
 
     /* 在线好友条：点头像进聊天，点「＋」直接邀请 */
@@ -984,6 +1144,106 @@
     $('#btnInvite').addEventListener('click', () => {
       if (activeId) openGamePicker(activeId);
     });
+
+    $('#btnChatMore').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleChatMenu();
+    });
+
+    $('#chatMenu').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-cmd]');
+      if (!btn) return;
+      toggleChatMenu(false);
+      if (btn.dataset.cmd === 'info') openInfo(activeId);
+      else if (btn.dataset.cmd === 'clear') {
+        if (!activeId) return;
+        ls.set(CHAT_PREFIX + activeId, []);
+        rendered.id = null;
+        renderChat(true);
+        renderFriends();
+        toast('聊天记录已清空');
+      }
+    });
+
+    $('#chatBody').addEventListener('click', (e) => {
+      const q = e.target.closest('[data-quick]');
+      if (!q) return;
+      sendDm(q.dataset.quick);
+      $('#chatInput').value = '';
+    });
+
+    $('#chatBody').addEventListener('scroll', updateToBottom, { passive: true });
+
+    $('#btnToBottom').addEventListener('click', () => {
+      const body = $('#chatBody');
+      body.scrollTop = body.scrollHeight;
+      updateToBottom();
+    });
+
+    $('#btnInfoBack').addEventListener('click', () => {
+      if (activeId) {
+        setSheetMode('chat');
+        renderChat();
+      } else {
+        backToList();
+      }
+    });
+    $('#btnInfoClose').addEventListener('click', closeFriends);
+
+    $('#infoBody').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act]');
+      if (!btn || btn.disabled || !infoId) return;
+      const act = btn.dataset.act;
+      if (act === 'invite') {
+        openGamePicker(infoId);
+        return;
+      }
+      if (armed !== act) {
+        armed = act;
+        btn.classList.add('is-armed');
+        btn.textContent = act === 'clear' ? '再点一次清空' : '再点一次删除';
+        clearTimeout(armTimer);
+        armTimer = setTimeout(() => {
+          if (infoId) renderInfo();
+        }, 4000);
+        return;
+      }
+      clearTimeout(armTimer);
+      if (act === 'clear') {
+        ls.set(CHAT_PREFIX + infoId, []);
+        rendered.id = null;
+        toast('聊天记录已清空');
+        renderInfo();
+        renderFriends();
+      } else {
+        removeFriend(infoId);
+      }
+    });
+
+    $('#infoBody').addEventListener('change', (e) => {
+      if (!e.target.id || e.target.id !== 'infoRemark' || !infoId) return;
+      const f = friends.find((x) => x.id === infoId);
+      if (!f) return;
+      const val = e.target.value.trim().slice(0, 12);
+      if (val === (f.remark || '')) return;
+      if (val) f.remark = val;
+      else delete f.remark;
+      saveFriends();
+      renderFriends();
+      if (activeId === f.id) renderChatHead();
+      toast('备注已保存');
+    });
+
+    /* 点别处收起聊天菜单 */
+    document.addEventListener(
+      'click',
+      (e) => {
+        if ($('#chatMenu').hidden) return;
+        if (e.target.closest('#chatMenu') || e.target.closest('#btnChatMore')) return;
+        toggleChatMenu(false);
+      },
+      true
+    );
 
     $('#gamePicker').addEventListener('click', (e) => {
       if (e.target.closest('[data-gpclose]')) {
@@ -1067,13 +1327,17 @@
         closeGamePicker();
         return;
       }
+      if (!$('#chatMenu').hidden) {
+        toggleChatMenu(false);
+        return;
+      }
       if ($('#emojiPanel').classList.contains('show')) {
         toggleEmoji(false);
         return;
       }
       const sheet = $('#friendSheet');
       if (!sheet.classList.contains('open')) return;
-      if (sheet.classList.contains('mode-chat')) backToList();
+      if (sheet.classList.contains('mode-chat') || sheet.classList.contains('mode-info')) backToList();
       else closeFriends();
     });
   }

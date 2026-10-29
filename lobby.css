@@ -534,7 +534,7 @@ body.lobby.sheet-open {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  width: 420px;
+  width: 440px;
   max-width: 100%;
   background: var(--paper-2);
   box-shadow: -30px 0 70px -40px rgba(26, 25, 22, 0.8);
@@ -551,7 +551,7 @@ body.lobby.sheet-open {
 }
 
 /* 选游戏弹层打开时，好友面板的遮罩让位，避免两层灰叠在一起 */
-body.picking .sheet-backdrop {
+body.picking .friend-sheet.open .sheet-backdrop {
   opacity: 0;
 }
 
@@ -567,15 +567,18 @@ body.picking .sheet-backdrop {
 }
 
 .friend-sheet.mode-list #fsListView,
-.friend-sheet.mode-chat #fsChatView {
+.friend-sheet.mode-chat #fsChatView,
+.friend-sheet.mode-info #fsInfoView {
   display: flex;
 }
+
+/* 头部 */
 
 .fs-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 22px 22px 16px;
+  gap: 9px;
+  padding: 20px 20px 14px;
 }
 
 .fs-head h2 {
@@ -607,18 +610,74 @@ body.picking .sheet-backdrop {
   background: var(--tone);
 }
 
+.fs-back {
+  height: 28px;
+  padding: 0 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: transparent;
+  border: 0;
+}
+
+.fs-back:hover {
+  color: var(--ink);
+}
+
+/* 自己的号码 */
+
+.fs-self {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 20px 14px;
+  padding: 12px 14px;
+  background: var(--tone);
+}
+
+.fs-self span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.fs-self b {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-self button {
+  margin-left: auto;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 0;
+}
+
+.fs-self button:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* 添加 */
+
 .add-row {
   display: flex;
   gap: 6px;
-  padding: 0 22px 8px;
+  padding: 0 20px;
 }
 
 .add-row input {
   flex: 1;
   min-width: 0;
-  height: 40px;
+  height: 42px;
   padding: 0 12px;
   font-size: 13px;
+  letter-spacing: 0.04em;
   background: var(--tone);
   border: 0;
 }
@@ -626,13 +685,13 @@ body.picking .sheet-backdrop {
 .add-row input:focus {
   outline: 2px solid var(--ink);
   outline-offset: -2px;
-  background: var(--paper-2);
+  background: var(--paper);
 }
 
 .btn-add {
   flex: 0 0 auto;
-  height: 40px;
-  padding: 0 16px;
+  height: 42px;
+  padding: 0 18px;
   font-size: 13px;
   font-weight: 700;
   color: var(--on-accent);
@@ -644,18 +703,67 @@ body.picking .sheet-backdrop {
   background: var(--accent-dark);
 }
 
+.add-note {
+  margin: 8px 20px 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.add-note.is-error {
+  color: var(--accent);
+}
+
+/* 搜索 */
+
+.search-row {
+  padding: 14px 20px 0;
+}
+
+.search-row input {
+  width: 100%;
+  height: 34px;
+  padding: 0 11px;
+  font-size: 12.5px;
+  background: var(--tone);
+  border: 0;
+}
+
+.search-row input:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+/* 列表 */
+
 .friend-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 6px 0 22px;
+  padding: 8px 0 20px;
+}
+
+.friend-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.friend-list::-webkit-scrollbar-thumb {
+  background: var(--tone-2);
+}
+
+.f-group {
+  padding: 14px 20px 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-3);
 }
 
 .friend {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 22px;
+  padding: 10px 20px;
   cursor: pointer;
   transition: background 0.15s var(--ease);
 }
@@ -669,9 +777,9 @@ body.picking .sheet-backdrop {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  font-size: 14px;
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
   font-weight: 700;
   background: var(--tone);
 }
@@ -682,49 +790,76 @@ body.picking .sheet-backdrop {
 
 .f-avatar i {
   display: none;
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--paper-2);
+}
+
+.f-avatar i.on,
+.f-avatar i.busy {
+  display: block;
+}
+
+.friend:hover .f-avatar i {
+  box-shadow: 0 0 0 2px var(--tone);
+}
+
+.f-avatar i.on {
+  background: #2f7d55;
+}
+
+.f-avatar i.busy {
+  background: var(--accent);
 }
 
 .f-main {
   flex: 1;
   min-width: 0;
-}
-
-.f-top {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.f-top b {
+.f-name {
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.f-top .f-state {
-  flex: 0 0 auto;
-  font-size: 11.5px;
-  color: var(--ink-3);
-}
-
-.f-top .f-state.on {
-  color: #2f7d55;
-}
-
-.f-top .f-state.busy {
-  color: var(--accent);
-}
-
 .f-sub {
-  margin-top: 2px;
+  min-width: 0;
   font-size: 12.5px;
   line-height: 1.4;
   color: var(--ink-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.f-meta {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.f-time {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.f-sub.busy {
+  color: var(--accent);
 }
 
 .f-unread {
@@ -741,8 +876,43 @@ body.picking .sheet-backdrop {
   font-variant-numeric: tabular-nums;
 }
 
+.f-more {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-3);
+  background: transparent;
+  border: 0;
+  opacity: 0;
+  transition: opacity 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.friend:hover .f-more {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .f-more {
+    opacity: 0.45;
+  }
+}
+
+.f-more:hover {
+  color: var(--ink);
+  background: var(--tone-2);
+}
+
+.friend-none {
+  padding: 22px 20px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
 .friend-empty {
-  padding: 26px 22px 30px;
+  padding: 26px 20px 30px;
 }
 
 .friend-empty.hidden {
@@ -757,35 +927,19 @@ body.picking .sheet-backdrop {
 
 .friend-empty span {
   font-size: 12.5px;
-  line-height: 1.6;
+  line-height: 1.7;
   color: var(--ink-3);
-}
-
-.friend-empty b {
-  color: var(--ink);
-  letter-spacing: 0.04em;
 }
 
 /* ---------------- 聊天 ---------------- */
 
+.chat-view {
+  position: relative;
+}
+
 .chat-head {
   flex: 0 0 auto;
-  align-items: center;
-  padding: 20px 18px 14px;
-}
-
-.fs-back {
-  height: 28px;
-  padding: 0 10px 0 0;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-3);
-  background: transparent;
-  border: 0;
-}
-
-.fs-back:hover {
-  color: var(--ink);
+  padding: 18px 16px 12px;
 }
 
 .chat-title {
@@ -839,23 +993,109 @@ body.picking .sheet-backdrop {
   cursor: not-allowed;
 }
 
+.chat-more {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink-3);
+  background: transparent;
+  border: 0;
+}
+
+.chat-more:hover {
+  color: var(--ink);
+  background: var(--tone);
+}
+
+.chat-menu {
+  position: absolute;
+  top: 54px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  min-width: 132px;
+  background: var(--paper-2);
+  box-shadow: 0 22px 46px -26px rgba(26, 25, 22, 0.7);
+}
+
+.chat-menu[hidden] {
+  display: none;
+}
+
+.chat-menu button {
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+.chat-menu button:hover {
+  color: var(--ink);
+  background: var(--tone);
+}
+
 .chat-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 12px 18px 18px;
+  gap: 12px;
+  padding: 8px 16px 16px;
+}
+
+.chat-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-body::-webkit-scrollbar-thumb {
+  background: var(--tone-2);
+}
+
+.chat-day {
+  align-self: center;
+  padding: 2px 0;
+  font-size: 11px;
+  color: var(--ink-3);
 }
 
 .chat-empty {
   margin: auto 0;
-  padding: 24px 0;
-  font-size: 13px;
-  line-height: 1.7;
+  padding: 10px 0;
   text-align: center;
+}
+
+.chat-empty p {
+  margin: 0 0 14px;
+  font-size: 13px;
   color: var(--ink-3);
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.quick button {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: var(--tone);
+  border: 0;
+}
+
+.quick button:hover {
+  color: var(--ink);
+  background: var(--tone-2);
 }
 
 .msg {
@@ -936,7 +1176,21 @@ body.picking .sheet-backdrop {
   background: none;
 }
 
-/* 表情面板 */
+.to-bottom {
+  position: absolute;
+  left: 50%;
+  bottom: 74px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--paper-2);
+  background: var(--ink);
+  border: 0;
+  transform: translateX(-50%);
+  box-shadow: 0 14px 28px -18px rgba(26, 25, 22, 0.8);
+}
+
+/* 表情 */
 
 .emoji-panel {
   display: none;
@@ -1019,6 +1273,121 @@ body.picking .sheet-backdrop {
 
 .chat-input button[type="submit"]:hover {
   background: var(--accent-dark);
+}
+
+/* ---------------- 好友资料 ---------------- */
+
+.info-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 20px 24px;
+}
+
+.info-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--tone);
+}
+
+.info-avatar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--paper);
+  background: var(--ink);
+}
+
+.info-card b {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.info-card em {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-style: normal;
+  color: var(--ink-3);
+}
+
+.info-card em.busy {
+  color: var(--accent);
+}
+
+.info-field {
+  display: block;
+  margin: 20px 0 16px;
+}
+
+.info-field span {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.info-field input {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: var(--tone);
+  border: 0;
+}
+
+.info-field input:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+  background: var(--paper);
+}
+
+.info-meta {
+  margin-bottom: 22px;
+  font-size: 12px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.info-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-actions button.btn {
+  justify-content: flex-start;
+  height: 44px;
+  padding: 0 16px;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.info-actions button.btn.danger {
+  color: var(--accent);
+  background: var(--tone);
+}
+
+.info-actions button.btn.danger:hover,
+.info-actions button.btn.danger.is-armed {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.info-note {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
 }
 
 /* ---------------- 邀请横幅 ---------------- */

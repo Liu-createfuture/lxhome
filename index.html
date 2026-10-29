@@ -9,8 +9,8 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%231a1916'/%3E%3Ctext x='32' y='45' font-size='30' font-family='sans-serif' font-weight='700' fill='%23f2f0ea' text-anchor='middle'%3E%E6%88%8F%3C/text%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="ui.css?v=20261029-3" />
-    <link rel="stylesheet" href="lobby.css?v=20261029-4" />
+    <link rel="stylesheet" href="ui.css?v=20261029-5" />
+    <link rel="stylesheet" href="lobby.css?v=20261029-6" />
   </head>
   <body class="gs lobby">
     <div class="app">
@@ -83,40 +83,62 @@
       </footer>
     </div>
 
-    <!-- 好友面板：列表 / 聊天 二合一 -->
+    <!-- 好友：列表 / 聊天 / 资料 -->
     <div class="friend-sheet" id="friendSheet" aria-hidden="true">
       <div class="sheet-backdrop" id="sheetBackdrop"></div>
       <aside class="sheet-panel" role="dialog" aria-label="好友">
+
+        <!-- 列表 -->
         <div class="fs-view" id="fsListView">
-          <div class="fs-head">
+          <header class="fs-head">
             <h2>好友</h2>
             <span class="fs-count" id="friendCount">0</span>
-            <button class="fs-close" id="btnCloseFriends" aria-label="关闭">关闭</button>
+            <button class="fs-close" id="btnCloseFriends">关闭</button>
+          </header>
+
+          <div class="fs-self">
+            <span>我的号码</span>
+            <b id="selfId">--------</b>
+            <button id="selfCopy">复制</button>
           </div>
 
           <div class="add-row">
-            <input id="friendCode" placeholder="输入对方号码添加" maxlength="16" autocomplete="off" />
+            <input id="friendCode" placeholder="输入对方号码" maxlength="16" autocomplete="off" />
             <button class="btn-add" id="btnAddFriend">添加</button>
+          </div>
+          <p class="add-note" id="addNote">号码是对方大厅顶上那串，八位。</p>
+
+          <div class="search-row hidden" id="searchRow">
+            <input id="friendSearch" placeholder="搜索名字或号码" autocomplete="off" />
           </div>
 
           <div class="friend-list" id="friendList"></div>
 
           <div class="friend-empty" id="friendEmpty">
             <p>还没有好友</p>
-            <span>把你的号码 <b id="emptyId">--------</b> 发给朋友，互相添加就能聊天。</span>
+            <span>把你的号码发给对方，两边互相添加就能说话。</span>
           </div>
         </div>
 
+        <!-- 聊天 -->
         <div class="fs-view chat-view" id="fsChatView">
-          <div class="fs-head chat-head">
-            <button class="fs-back" id="btnChatBack" aria-label="返回好友列表">返回</button>
+          <header class="fs-head chat-head">
+            <button class="fs-back" id="btnChatBack">返回</button>
             <div class="chat-title">
               <b id="chatName">好友</b>
               <span id="chatState">离线</span>
             </div>
             <button class="chat-invite" id="btnInvite">一起玩</button>
+            <button class="chat-more" id="btnChatMore" aria-label="更多">⋯</button>
+          </header>
+
+          <div class="chat-menu" id="chatMenu" hidden>
+            <button type="button" data-cmd="info">好友资料</button>
+            <button type="button" data-cmd="clear">清空聊天</button>
           </div>
+
           <div class="chat-body" id="chatBody"></div>
+          <button type="button" class="to-bottom hidden" id="btnToBottom">回到底部</button>
           <div class="emoji-panel" id="emojiPanel" aria-hidden="true"></div>
           <form class="chat-input" id="chatForm">
             <button type="button" class="emoji-btn" id="btnEmoji" aria-label="表情">表情</button>
@@ -124,6 +146,17 @@
             <button type="submit" id="btnSend">发送</button>
           </form>
         </div>
+
+        <!-- 资料 -->
+        <div class="fs-view" id="fsInfoView">
+          <header class="fs-head">
+            <button class="fs-back" id="btnInfoBack">返回</button>
+            <h2>好友资料</h2>
+            <button class="fs-close" id="btnInfoClose">关闭</button>
+          </header>
+          <div class="info-body" id="infoBody"></div>
+        </div>
+
       </aside>
     </div>
 
@@ -157,8 +190,8 @@
       </div>
     </div>
 
-    <script src="猜数字/net-lite.js?v=20261029-3"></script>
-    <script src="猜数字/config.js?v=20261029-3"></script>
-    <script src="lobby.js?v=20261029-3"></script>
+    <script src="猜数字/net-lite.js?v=20261029-5"></script>
+    <script src="猜数字/config.js?v=20261029-5"></script>
+    <script src="lobby.js?v=20261029-6"></script>
   </body>
 </html>
