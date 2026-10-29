@@ -188,13 +188,23 @@ body::before {
 
 /* ---------------- 棋盘 ---------------- */
 
+.controls .btn.primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.controls .btn.primary:hover {
+  background: #000;
+}
+
 .stage {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 18px;
+  padding: 12px 0 0;
 }
 
 .board-shell {
@@ -202,18 +212,12 @@ body::before {
   max-width: 100%;
   display: flex;
   justify-content: center;
-  padding: 14px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, #fffdf8, #f6ecdc);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: var(--shadow);
 }
 
 .board {
   position: relative;
   --cell: 56px;
   touch-action: none;
-  border-radius: 14px;
   overflow: hidden;
 }
 .board.shake {
@@ -237,26 +241,19 @@ body::before {
   width: var(--cell);
   height: var(--cell);
   position: relative;
-  background: #fbf4e6;
+  background: #efece1;
 }
 .cell.floor {
-  background: #fbf4e6;
-  box-shadow: inset 0 0 0 1px rgba(120, 88, 50, 0.06);
-  border-radius: 6px;
+  background: #efece1;
 }
 .cell.wall {
-  background: linear-gradient(160deg, #5b4a3b, #3f3226);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 3px 6px -4px rgba(40, 26, 12, 0.8);
-  transform: scale(0.98);
+  background: #1a1916;
 }
 .cell.goal::after {
   content: "";
   position: absolute;
-  inset: 32%;
-  border-radius: 50%;
-  border: 2px dashed rgba(180, 83, 9, 0.45);
-  background: rgba(217, 119, 6, 0.09);
+  inset: 41%;
+  background: #bc2e1e;
 }
 
 .sprites {
@@ -282,41 +279,36 @@ body::before {
 
 /* 箱子 */
 .box i {
-  border-radius: 20%;
-  background: linear-gradient(160deg, #e8b071, #bb7a2c);
-  box-shadow: inset 0 -3px 0 rgba(90, 55, 15, 0.22), inset 0 2px 0 rgba(255, 255, 255, 0.4),
-    0 6px 12px -8px rgba(90, 55, 15, 0.9);
+  background: #ddd7c6;
+  box-shadow: inset 0 0 0 2px #1a1916;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 .box i::before,
 .box i::after {
   content: "";
   position: absolute;
-  background: rgba(120, 71, 20, 0.45);
+  background: #1a1916;
 }
 .box i::before {
-  left: 8%;
-  right: 8%;
-  top: 46%;
-  height: 8%;
-  border-radius: 2px;
+  left: 22%;
+  right: 22%;
+  top: 48%;
+  height: 3px;
 }
 .box i::after {
-  top: 8%;
-  bottom: 8%;
-  left: 46%;
-  width: 8%;
-  border-radius: 2px;
+  top: 22%;
+  bottom: 22%;
+  left: 48%;
+  width: 3px;
 }
 .box.on i {
-  background: linear-gradient(160deg, #86cc86, #3f9d63);
-  box-shadow: inset 0 -3px 0 rgba(20, 70, 40, 0.22), inset 0 2px 0 rgba(255, 255, 255, 0.45),
-    0 6px 12px -8px rgba(20, 70, 40, 0.8);
+  background: #1a1916;
+  box-shadow: none;
   animation: boxPop 0.24s ease;
 }
 .box.on i::before,
 .box.on i::after {
-  background: rgba(20, 70, 40, 0.3);
+  background: #efece1;
 }
 @keyframes boxPop {
   50% {
@@ -326,9 +318,7 @@ body::before {
 
 /* 玩家 */
 .player i {
-  border-radius: 46% 46% 42% 42%;
-  background: linear-gradient(160deg, #7d8cf5, #4f46e5);
-  box-shadow: inset 0 -3px 0 rgba(30, 24, 90, 0.28), 0 6px 12px -8px rgba(40, 30, 100, 0.9);
+  background: #bc2e1e;
   transition: transform 0.12s ease;
 }
 .player i::before,
@@ -400,18 +390,15 @@ body::before {
   justify-content: center;
 }
 .dpad button {
-  border-radius: 14px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--ink-2);
+  border-radius: 0;
+  border: 0;
+  background: var(--tone);
+  color: var(--ink);
   font-size: 20px;
   cursor: pointer;
-  box-shadow: 0 8px 18px -16px rgba(84, 58, 30, 0.9);
 }
 .dpad button:active {
-  background: var(--primary-soft);
-  color: var(--primary);
-  transform: scale(0.96);
+  background: var(--tone-2);
 }
 .dpad [data-dir="up"] {
   grid-column: 2;
@@ -442,26 +429,25 @@ body::before {
 .lv-chip {
   width: 32px;
   height: 32px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border-radius: 0;
+  border: 0;
+  background: var(--tone);
   color: var(--ink-2);
   font: 700 12px/1 var(--font);
   cursor: pointer;
   position: relative;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .lv-chip:hover {
   border-color: rgba(180, 83, 9, 0.4);
   color: var(--primary);
 }
 .lv-chip.is-cur {
-  background: linear-gradient(135deg, var(--primary), var(--primary-2));
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 8px 16px -10px rgba(180, 83, 9, 0.9);
+  background: var(--ink);
+  color: var(--paper);
 }
 .lv-chip.done::after {
+  background: #bc2e1e;
   content: "";
   position: absolute;
   right: 3px;
@@ -638,4 +624,21 @@ body::before {
   .brand-text {
     display: none;
   }
+}
+
+
+/* ---------------- 收尾：全站直角，压掉各断点残留的圆角 ---------------- */
+.board,
+.tile,
+.cell,
+.cell-bg,
+.face,
+.board-shell,
+.canvas-wrap,
+.lv-chip,
+.dpad button,
+.tbtn,
+.modal-card,
+.overlay-card {
+  border-radius: 0;
 }

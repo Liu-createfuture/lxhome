@@ -3,18 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#eef1f8" />
+<meta name="theme-color" content="#f2f0ea" />
 <title>猜数字 · 4位 1A2B</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f46e5'/%3E%3Ctext x='32' y='45' font-size='36' font-family='monospace' font-weight='700' fill='white' text-anchor='middle'%3E4%3C/text%3E%3C/svg%3E" />
-<link rel="stylesheet" href="styles.css?v=20261027-15" />
+<link rel="stylesheet" href="styles.css?v=20261029-3" />
+<link rel="stylesheet" href="../ui.css?v=20261029-3" />
 </head>
-<body>
-
-<div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+<body class="gs" data-page="guess">
 
 <div class="app">
   <header class="topbar">
-    <a class="back-home" id="backHome" href="../" title="返回游戏大厅" aria-label="返回游戏大厅">← 大厅</a>
+    <a class="back-home" id="backHome" href="../" title="返回游戏大厅">← 大厅</a>
     <div class="brand">
       <div class="logo">4</div>
       <div class="brand-text">
@@ -29,10 +28,8 @@
     </nav>
 
     <div class="top-actions">
-      <span class="online-pill" id="onlinePill" title="当前在线人数">
-        <i class="dot"></i><span id="onlineCount">0</span> 人在线
-      </span>
-      <button class="icon-btn" id="btnSound" title="音效开关" aria-label="音效开关">🔔</button>
+      <span class="online-pill" id="onlinePill" title="当前在线人数"><i class="dot"></i><span id="onlineCount">0</span> 人在线</span>
+      <button class="icon-btn" id="btnSound" title="音效开关" aria-label="音效开关">音效</button>
       <button class="icon-btn" id="btnRules" title="玩法说明" aria-label="玩法说明">?</button>
     </div>
   </header>
@@ -213,6 +210,11 @@
       </div>
     </aside>
   </main>
+
+  <footer class="page-foot">
+    <span>对局记录只保存在这台设备上</span>
+    <a href="../">← 回大厅</a>
+  </footer>
 </div>
 
 <!-- ============ 规则弹窗 ============ -->
@@ -220,7 +222,7 @@
   <div class="modal-card">
     <div class="modal-head">
       <h3>玩法说明</h3>
-      <button class="icon-btn close" data-close="rulesModal">✕</button>
+      <button class="icon-btn close" data-close="rulesModal">关闭</button>
     </div>
     <div class="modal-body">
       <p>系统会生成一个 <b>4 位数字</b>，每一位互不相同（首位可以是 0）。你每次输入 4 位数字，系统返回两个数值：</p>
@@ -246,7 +248,7 @@
   <div class="modal-card">
     <div class="modal-head">
       <h3 id="resultTitle">本局结束</h3>
-      <button class="icon-btn close" data-close="resultModal">✕</button>
+      <button class="icon-btn close" data-close="resultModal">关闭</button>
     </div>
     <div class="modal-body">
       <div class="result-hero" id="resultHero">
@@ -268,9 +270,9 @@
 <div class="toast-stack" id="toastStack"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
-<script src="net-lite.js?v=20261027-15"></script>
-<script src="config.js?v=20261027-15"></script>
-<script src="hub-friends.js?v=20261027-15"></script>
-<script src="app.js?v=20261027-15"></script>
+<script src="net-lite.js?v=20261029-3"></script>
+<script src="config.js?v=20261029-3"></script>
+<script src="hub-friends.js?v=20261029-3"></script>
+<script src="app.js?v=20261029-3"></script>
 </body>
 </html>

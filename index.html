@@ -3,82 +3,83 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#eef1f8" />
-    <title>游戏大厅</title>
+    <meta name="theme-color" content="#f2f0ea" />
+    <title>游戏厅</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f46e5'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' fill='white'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%231a1916'/%3E%3Ctext x='32' y='45' font-size='30' font-family='sans-serif' font-weight='700' fill='%23f2f0ea' text-anchor='middle'%3E%E6%88%8F%3C/text%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="lobby.css?v=20261027-15" />
+    <link rel="stylesheet" href="ui.css?v=20261029-3" />
+    <link rel="stylesheet" href="lobby.css?v=20261029-4" />
   </head>
-  <body>
-    <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
-
+  <body class="gs lobby">
     <div class="app">
-      <header class="hero">
-        <div class="hero-head">
-          <div class="brand">
-            <div class="logo">🎮</div>
-            <div class="brand-text">
-              <h1>游戏大厅</h1>
-              <p>和好友一起玩</p>
-            </div>
-          </div>
-
-          <div class="hero-right">
-            <span class="pill"><i class="dot"></i><span id="onlineCount">0</span></span>
-            <button class="friend-btn" id="btnFriends">
-              <span class="fb-icon">👥</span>
-              <span class="fb-text">好友</span>
-              <b class="fb-badge hidden" id="friendBadge">0</b>
-            </button>
-            <button class="icon-btn" id="btnSound" title="音效">🔔</button>
-          </div>
-        </div>
-
-        <div class="me">
-          <div class="me-avatar" id="meAvatar">玩</div>
-          <div class="me-main">
-            <input id="meNick" class="me-nick" maxlength="12" aria-label="昵称" />
-            <div class="me-code">号码 <b id="meId">----</b></div>
-          </div>
-          <button class="me-copy" id="copyId">复制号码</button>
+      <header class="bar">
+        <a class="mark" href="./">游戏厅</a>
+        <span class="bar-live"><i></i><b id="onlineCount">0</b> 人在线</span>
+        <div class="bar-actions">
+          <button class="bar-btn" id="btnFriends">
+            好友<span class="bar-badge hidden" id="friendBadge">0</span>
+          </button>
+          <button class="bar-btn" id="btnSound">音效 开</button>
         </div>
       </header>
 
-      <!-- 在线好友：一眼看到谁在线、在玩什么，点开就能聊或直接邀请 -->
-      <section class="online-strip hidden" id="onlineStrip">
-        <div class="os-head">
-          <span class="os-dot"></span>
-          <b>在线好友</b>
-          <span class="os-count" id="onlineFriendsCount">0</span>
+      <section class="lead">
+        <div class="lead-text">
+          <h1>和好友，<br />随时开一局</h1>
+          <p>
+            六款小游戏，其中两款可以联机。单人随时开始，要约人，只需要把你的号码递过去。
+          </p>
         </div>
-        <div class="os-list" id="onlineFriends"></div>
+
+        <div class="lead-aside">
+          <div class="me">
+            <span class="me-stamp" id="meAvatar">玩</span>
+            <div class="me-body">
+              <span class="me-label">你的号码</span>
+              <b class="me-id" id="meId">--------</b>
+            </div>
+            <div class="me-edit">
+              <input id="meNick" maxlength="12" aria-label="昵称" placeholder="昵称" />
+              <button id="copyId">复制</button>
+            </div>
+          </div>
+
+          <div class="how">
+            <h2>联机怎么玩</h2>
+            <p>把号码发给对方，对方在大厅加上你，之后在好友列表里点「一起玩」，选一款游戏就开局了。</p>
+          </div>
+        </div>
       </section>
 
-      <main class="layout">
-        <section class="panel games-panel">
-          <div class="panel-head">
-            <div>
-              <h2>游戏</h2>
-              <p class="sub">点开就能玩，联机的可以喊上好友</p>
-            </div>
-            <span class="count-badge" id="gameCount">0 款</span>
-          </div>
-          <div class="game-grid" id="gameGrid"></div>
+      <!-- 在线好友：一眼看到谁在线、在玩什么 -->
+      <section class="online hidden" id="onlineStrip">
+        <div class="sec-head">
+          <h2>在线好友</h2>
+          <span class="sec-note"><b id="onlineFriendsCount">0</b> 人在线</span>
+        </div>
+        <div class="online-list" id="onlineFriends"></div>
+      </section>
 
-          <div class="panel-head mt">
-            <div>
-              <h2>其他项目</h2>
-              <p class="sub">这个站点里的其他页面</p>
-            </div>
-          </div>
-          <div class="mini-links" id="miniLinks"></div>
-        </section>
-      </main>
+      <section class="games">
+        <div class="sec-head">
+          <h2>游戏</h2>
+          <span class="sec-note" id="gameCount">0 款</span>
+        </div>
+        <div class="game-list" id="gameGrid"></div>
+      </section>
 
-      <footer class="hub-foot">
-        好友与聊天记录只保存在你的浏览器 · 把站点放到公网，随时约朋友一起玩
+      <section class="elsewhere">
+        <div class="sec-head">
+          <h2>站内其他</h2>
+        </div>
+        <div class="link-row" id="miniLinks"></div>
+      </section>
+
+      <footer class="foot">
+        <p>好友与聊天记录只留在这台设备上，换设备不会同步。</p>
+        <a href="./">回到顶部</a>
       </footer>
     </div>
 
@@ -90,26 +91,25 @@
           <div class="fs-head">
             <h2>好友</h2>
             <span class="fs-count" id="friendCount">0</span>
-            <button class="fs-close" id="btnCloseFriends" aria-label="关闭">✕</button>
+            <button class="fs-close" id="btnCloseFriends" aria-label="关闭">关闭</button>
           </div>
 
           <div class="add-row">
-            <input id="friendCode" placeholder="输入好友号码…" maxlength="16" autocomplete="off" />
+            <input id="friendCode" placeholder="输入对方号码添加" maxlength="16" autocomplete="off" />
             <button class="btn-add" id="btnAddFriend">添加</button>
           </div>
 
           <div class="friend-list" id="friendList"></div>
 
           <div class="friend-empty" id="friendEmpty">
-            <div class="fe-icon">👋</div>
             <p>还没有好友</p>
-            <span>把你的号码 <b id="emptyId">----</b> 发给朋友，互相添加就能聊天</span>
+            <span>把你的号码 <b id="emptyId">--------</b> 发给朋友，互相添加就能聊天。</span>
           </div>
         </div>
 
         <div class="fs-view chat-view" id="fsChatView">
           <div class="fs-head chat-head">
-            <button class="fs-back" id="btnChatBack" aria-label="返回好友列表">←</button>
+            <button class="fs-back" id="btnChatBack" aria-label="返回好友列表">返回</button>
             <div class="chat-title">
               <b id="chatName">好友</b>
               <span id="chatState">离线</span>
@@ -119,8 +119,8 @@
           <div class="chat-body" id="chatBody"></div>
           <div class="emoji-panel" id="emojiPanel" aria-hidden="true"></div>
           <form class="chat-input" id="chatForm">
-            <button type="button" class="emoji-btn" id="btnEmoji" aria-label="表情" title="表情">😊</button>
-            <input id="chatInput" placeholder="发消息…" maxlength="500" autocomplete="off" />
+            <button type="button" class="emoji-btn" id="btnEmoji" aria-label="表情">表情</button>
+            <input id="chatInput" placeholder="写点什么…" maxlength="500" autocomplete="off" />
             <button type="submit" id="btnSend">发送</button>
           </form>
         </div>
@@ -129,16 +129,17 @@
 
     <!-- 邀请横幅 -->
     <div class="invite-banner" id="inviteBanner">
-      <div class="ib-avatar" id="ibAvatar">友</div>
       <div class="ib-text">
-        <b id="ibFrom">好友</b> 邀请你一起玩「<span id="ibGame">猜数字</span>」
-        <small>房间号 <span id="ibCode">----</span></small>
+        <b id="ibFrom">好友</b> 拉你一起玩
+        <span id="ibGame">猜数字</span>
+        <small>房间 <span id="ibCode">----</span></small>
       </div>
       <div class="ib-actions">
-        <button class="ib-accept" id="ibAccept">接受</button>
-        <button class="ib-ignore" id="ibIgnore">忽略</button>
+        <button class="ib-accept" id="ibAccept">进去</button>
+        <button class="ib-ignore" id="ibIgnore">算了</button>
       </div>
     </div>
+    <span class="hidden" id="ibAvatar">友</span>
 
     <div class="toast-stack" id="toasts"></div>
 
@@ -147,19 +148,17 @@
       <div class="gp-backdrop" data-gpclose></div>
       <div class="gp-card" role="dialog" aria-label="选择游戏">
         <div class="gp-head">
-          <div>
-            <h3>邀请一起玩</h3>
-            <p id="gpSub">选择游戏</p>
-          </div>
-          <button class="fs-close" data-gpclose aria-label="关闭">✕</button>
+          <h3>一起玩什么</h3>
+          <p id="gpSub">选择游戏</p>
+          <button class="gp-close" data-gpclose aria-label="关闭">关闭</button>
         </div>
         <div class="gp-list" id="gpList"></div>
         <div class="gp-foot"><button type="button" class="gp-cancel" data-gpclose>取消</button></div>
       </div>
     </div>
 
-    <script src="猜数字/net-lite.js?v=20261027-15"></script>
-    <script src="猜数字/config.js?v=20261027-15"></script>
-    <script src="lobby.js?v=20261027-15"></script>
+    <script src="猜数字/net-lite.js?v=20261029-3"></script>
+    <script src="猜数字/config.js?v=20261029-3"></script>
+    <script src="lobby.js?v=20261029-3"></script>
   </body>
 </html>

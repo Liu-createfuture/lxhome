@@ -163,7 +163,7 @@
   const soundBtn = $('#btnSound');
 
   function syncSoundBtn() {
-    soundBtn.textContent = soundOn ? '🔔' : '🔕';
+    soundBtn.textContent = soundOn ? '音效' : '静音';
     soundBtn.classList.toggle('is-off', !soundOn);
   }
   syncSoundBtn();
@@ -443,13 +443,11 @@
   }
 
   const SOLO_EMPTY = `<div class="empty">
-      <div class="empty-icon">🎯</div>
       <p>还没有猜测记录</p>
       <span>每一位数字互不相同，首位可以是 0</span>
     </div>`;
 
   const ONLINE_EMPTY = `<div class="empty">
-      <div class="empty-icon">⚡</div>
       <p>抢答开始</p>
       <span>和对手使用同一个答案，先破解者获胜</span>
     </div>`;

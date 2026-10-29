@@ -369,48 +369,27 @@
   }
 
   function drawSky() {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#e9ecff');
-    g.addColorStop(0.45, '#e4e7fb');
-    g.addColorStop(0.75, '#f2eefc');
-    g.addColorStop(1, '#fbf3fb');
-    ctx.fillStyle = g;
+    ctx.fillStyle = '#efece1';
     ctx.fillRect(0, 0, W, H);
-
-    // 光斑
-    const blobs = [
-      { x: W * 0.18, y: H * 0.16, r: H * 0.3, c: 'rgba(139,92,246,0.16)' },
-      { x: W * 0.78, y: H * 0.1, r: H * 0.24, c: 'rgba(56,189,248,0.14)' },
-      { x: W * 0.55, y: H * 0.55, r: H * 0.34, c: 'rgba(244,114,182,0.1)' }
-    ];
-    blobs.forEach((b) => {
-      const rg = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-      rg.addColorStop(0, b.c);
-      rg.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = rg;
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
 
     drawClouds();
 
-    // 星点
+    // 远处的点，给一点纵深
     const t = performance.now() / 1000;
-    S.stars.forEach((s) => {
-      const x = (s.x - S.cam * s.p) % (W + 400);
+    S.stars.forEach((s2) => {
+      const x = (s2.x - S.cam * s2.p) % (W + 400);
       const px = x < 0 ? x + W + 400 : x;
-      const a = s.a * (0.6 + 0.4 * Math.sin(t * 1.6 + s.tw));
-      ctx.fillStyle = `rgba(99,102,241,${a})`;
+      const a = s2.a * (0.3 + 0.25 * Math.sin(t * 1.6 + s2.tw));
+      ctx.fillStyle = `rgba(26,25,22,${a.toFixed(3)})`;
       ctx.beginPath();
-      ctx.arc(px, s.y, s.r, 0, Math.PI * 2);
+      ctx.arc(px, s2.y, s2.r * 0.8, 0, Math.PI * 2);
       ctx.fill();
     });
   }
 
   function drawHills() {
     // 远山
-    ctx.fillStyle = 'rgba(129,140,248,0.16)';
+    ctx.fillStyle = '#e3dfd2';
     ctx.beginPath();
     ctx.moveTo(0, H);
     const off1 = -(S.cam * 0.08) % 300;
@@ -424,7 +403,7 @@
     ctx.fill();
 
     // 近山
-    ctx.fillStyle = 'rgba(99,102,241,0.13)';
+    ctx.fillStyle = '#d8d3c4';
     ctx.beginPath();
     ctx.moveTo(0, H);
     const off2 = -(S.cam * 0.16) % 240;
@@ -448,36 +427,30 @@
   function drawClouds() {
     const t = performance.now() / 1000;
     const list = [
-      { x: 0.16, y: 0.16, s: 1.0, p: 0.05 },
-      { x: 0.55, y: 0.1, s: 0.72, p: 0.08 },
-      { x: 0.82, y: 0.22, s: 0.9, p: 0.06 }
+      { x: 0.16, y: 0.14, s: 1.0, p: 0.05 },
+      { x: 0.55, y: 0.09, s: 0.72, p: 0.08 },
+      { x: 0.82, y: 0.2, s: 0.9, p: 0.06 }
     ];
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
     list.forEach((c, i) => {
       const drift = ((t * (6 + i * 3)) % 400) - 120;
       const cx = W * c.x + drift * c.p - S.cam * c.p * 0.35;
       const cy = H * c.y;
       const r = 42 * c.s;
-      const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.1);
-      g2.addColorStop(0, 'rgba(255,255,255,0.85)');
-      g2.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = g2;
       ctx.beginPath();
-      ctx.ellipse(cx, cy, r * 2.1, r, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, r * 2.1, r * 0.72, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + r * 1.1, cy + r * 0.12, r * 1.2, r * 0.56, 0, 0, Math.PI * 2);
       ctx.fill();
     });
   }
 
   function drawGround() {
     const top = GROUND + 16;
-    const g2 = ctx.createLinearGradient(0, top, 0, H);
-    g2.addColorStop(0, 'rgba(214,208,240,0.55)');
-    g2.addColorStop(0.35, 'rgba(203,196,234,0.85)');
-    g2.addColorStop(1, 'rgba(186,178,224,0.95)');
-    ctx.fillStyle = g2;
+    ctx.fillStyle = '#e6e1d1';
     ctx.fillRect(0, top, W, H - top);
 
     // 横向虚线，制造前进感
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.strokeStyle = 'rgba(26,25,22,0.08)';
     ctx.lineWidth = 1;
     const step = 46;
     const off = (-S.cam * 0.6) % step;
@@ -493,8 +466,8 @@
     ctx.setLineDash([]);
 
     // 顶部亮边
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fillRect(0, top - 2, W, 3);
+    ctx.fillStyle = 'rgba(26,25,22,0.1)';
+    ctx.fillRect(0, top - 2, W, 2);
   }
 
   function drawPlatforms() {
@@ -504,36 +477,30 @@
       if (x > W + 120 || x + p.w < -120) return;
 
       // 影子
-      ctx.fillStyle = 'rgba(70,64,120,0.1)';
+      ctx.fillStyle = 'rgba(26,25,22,0.08)';
       ctx.beginPath();
       ctx.ellipse(x + p.w / 2, GROUND + 34, p.w * 0.52, 10, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // 主体
-      const g = ctx.createLinearGradient(0, GROUND, 0, GROUND + CFG.platFront + 16);
       const isCur = p === cur;
-      g.addColorStop(0, isCur ? '#ddd8f6' : '#d2cdec');
-      g.addColorStop(1, '#b0a9d6');
-      ctx.fillStyle = g;
-      roundRect(x, GROUND, p.w, CFG.platFront + 14, 9);
+      ctx.fillStyle = isCur ? '#2a2823' : '#3a3830';
+      roundRect(x, GROUND, p.w, CFG.platFront + 14, 0);
       ctx.fill();
 
       // 顶面
-      const tg = ctx.createLinearGradient(0, GROUND - 9, 0, GROUND + 8);
-      tg.addColorStop(0, '#ffffff');
-      tg.addColorStop(1, '#eceafb');
-      ctx.fillStyle = tg;
-      roundRect(x - 2, GROUND - 9, p.w + 4, 13, 6);
+      ctx.fillStyle = '#f7f5ee';
+      roundRect(x - 2, GROUND - 9, p.w + 4, 13, 0);
       ctx.fill();
 
-      // 高光
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      roundRect(x + 6, GROUND - 7, Math.max(10, p.w * 0.35), 3, 2);
+      // 顶面上的一道细痕，标出落脚点
+      ctx.fillStyle = 'rgba(26,25,22,0.14)';
+      roundRect(x + 8, GROUND - 6, Math.max(10, p.w * 0.28), 2, 1);
       ctx.fill();
 
       // 当前平台光晕
       if (isCur && (S.phase === 'idle' || S.phase === 'charging')) {
-        ctx.strokeStyle = 'rgba(79,70,229,0.35)';
+        ctx.strokeStyle = '#bc2e1e';
         ctx.lineWidth = 1.5;
         roundRect(x - 2, GROUND - 9, p.w + 4, 13, 6);
         ctx.stroke();
@@ -545,15 +512,14 @@
     if (S.phase !== 'idle' && S.phase !== 'charging') return;
     const target = S.plats.find((p) => p.x > S.player.x + 4);
     if (!target) return;
-    const x = target.x - S.cam;
-    const cx = x + target.w / 2;
-    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
-    const rg = ctx.createRadialGradient(cx, GROUND - 2, 0, cx, GROUND - 2, target.w * 0.95);
-    rg.addColorStop(0, 'rgba(99,102,241,' + (0.16 + pulse * 0.1).toFixed(3) + ')');
-    rg.addColorStop(1, 'rgba(99,102,241,0)');
-    ctx.fillStyle = rg;
+    const cx = target.x - S.cam + target.w / 2;
+    const bob = Math.sin(performance.now() / 320) * 2.4;
+    ctx.fillStyle = '#bc2e1e';
     ctx.beginPath();
-    ctx.ellipse(cx, GROUND - 2, target.w * 0.95, 30, 0, 0, Math.PI * 2);
+    ctx.moveTo(cx - 6, GROUND - 26 + bob);
+    ctx.lineTo(cx + 6, GROUND - 26 + bob);
+    ctx.lineTo(cx, GROUND - 16 + bob);
+    ctx.closePath();
     ctx.fill();
   }
 
@@ -582,16 +548,13 @@
     ctx.scale(sx, sy);
 
     // 身体
-    const bg = ctx.createLinearGradient(-size / 2, -size / 2, size / 2, size / 2);
-    bg.addColorStop(0, '#6366f1');
-    bg.addColorStop(1, '#8b5cf6');
-    ctx.fillStyle = bg;
+    ctx.fillStyle = '#bc2e1e';
     roundRect(-size / 2, -size / 2, size, size, 9);
     ctx.fill();
 
     // 高光
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
-    roundRect(-size / 2 + 4, -size / 2 + 4, size - 8, size * 0.32, 7);
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    roundRect(-size / 2 + 4, -size / 2 + 4, size - 8, size * 0.28, 6);
     ctx.fill();
 
     // 眼睛
@@ -600,7 +563,7 @@
     ctx.arc(-size * 0.16, -size * 0.06, size * 0.14, 0, Math.PI * 2);
     ctx.arc(size * 0.16, -size * 0.06, size * 0.14, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#2b2545';
+    ctx.fillStyle = '#1a1916';
     ctx.beginPath();
     ctx.arc(-size * 0.13, -size * 0.04, size * 0.07, 0, Math.PI * 2);
     ctx.arc(size * 0.19, -size * 0.04, size * 0.07, 0, Math.PI * 2);
@@ -612,16 +575,13 @@
       const r = size * 0.95;
       ctx.beginPath();
       ctx.arc(px, bottom - size / 2, r, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(79,70,229,0.15)';
+      ctx.strokeStyle = 'rgba(26,25,22,0.14)';
       ctx.lineWidth = 4;
       ctx.stroke();
 
-      const grad = ctx.createLinearGradient(px - r, 0, px + r, 0);
-      grad.addColorStop(0, '#6366f1');
-      grad.addColorStop(1, '#f472b6');
       ctx.beginPath();
       ctx.arc(px, bottom - size / 2, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * S.power);
-      ctx.strokeStyle = grad;
+      ctx.strokeStyle = '#1a1916';
       ctx.lineCap = 'round';
       ctx.lineWidth = 4;
       ctx.stroke();

@@ -27,80 +27,61 @@
     {
       id: 'guess',
       name: '猜数字',
-      emoji: '🎯',
-      desc: '4 位 1A2B · 单人练习 / 和好友抢答',
+      desc: '4 位 1A2B，单人练手，也可和好友同时抢答',
       href: '猜数字/',
       tag: '可联机',
       online: true,
-      c1: '#6366f1',
-      c2: '#8b5cf6',
       ready: true
     },
     {
       id: 'link',
       name: '连连看',
-      emoji: '🧩',
-      desc: '相同图案连线消除 · 3 分钟挑战',
+      desc: '两张相同图案连线消除，最多拐两个弯',
       href: '连连看/',
       tag: '单人',
-      c1: '#0f9b8e',
-      c2: '#34c759',
       ready: true
     },
     {
       id: '2048',
       name: '2048',
-      emoji: '🔢',
-      desc: '滑动合并相同数字 · 冲击 2048',
+      desc: '滑动合并相同的数字，一路推到 2048',
       href: '2048/',
       tag: '单人',
-      c1: '#f0a91b',
-      c2: '#f65e3b',
       ready: true
     },
     {
       id: 'jump',
       name: '跳一跳',
-      emoji: '🐤',
-      desc: '按住蓄力，松手起跳 · 可联机竞速',
+      desc: '按住蓄力松手起跳，可与好友比一比分数',
       href: '跳一跳/',
       tag: '可联机',
       online: true,
-      c1: '#38bdf8',
-      c2: '#6366f1',
       ready: true
     },
     {
       id: 'sokoban',
       name: '推箱子',
-      emoji: '📦',
-      desc: '把箱子推到点上 · 10 个关卡',
+      desc: '把所有箱子推到标记点上，共十关',
       href: '推箱子/',
       tag: '单人',
-      c1: '#b45309',
-      c2: '#e08a2e',
       ready: true
     },
     {
       id: 'adventure',
       name: '冒险岛',
-      emoji: '🏝️',
-      desc: '横版跳跃 · 踩怪吃金币闯三关',
+      desc: '横版跳跃，踩扁怪物、收齐金币走到终点',
       href: '冒险岛/',
       tag: '单人',
-      c1: '#0ea5a4',
-      c2: '#0e7490',
       ready: true
     },
-    { id: 'soon1', name: '敬请期待', emoji: '🎲', desc: '下一款游戏正在筹备中', ready: false },
-    { id: 'more', name: '更多游戏', emoji: '＋', desc: '往大厅里加新游戏很简单', ready: false }
+    { id: 'soon1', name: '下一款', desc: '正在筹备，先把上面几款玩一遍', tag: '筹备中', ready: false }
   ];
 
   const SITE_LINKS = [
-    { name: '医院导航', emoji: '🌐', href: '医院导航/' },
-    { name: '宝可梦', emoji: '🐲', href: '宝可梦/' },
-    { name: '输入', emoji: '⌨️', href: '输入/' },
-    { name: 'Qwen VL', emoji: '🤖', href: 'qwen-vl/' }
+    { name: '医院导航', href: '医院导航/' },
+    { name: '宝可梦', href: '宝可梦/' },
+    { name: '输入', href: '输入/' },
+    { name: 'Qwen VL', href: 'qwen-vl/' }
   ];
 
   /* ---------------- 本地存储 ---------------- */
@@ -187,7 +168,7 @@
   }
 
   function syncSoundBtn() {
-    $('#btnSound').textContent = soundOn ? '🔔' : '🔕';
+    $('#btnSound').textContent = soundOn ? '音效 开' : '音效 关';
     $('#btnSound').classList.toggle('is-off', !soundOn);
   }
 
@@ -248,26 +229,20 @@
 
   function renderGames() {
     $('#gameGrid').innerHTML = GAMES.map((g) => {
+      const tag = g.tag ? `<span class="g-tag${g.online ? ' live' : ''}">${esc(g.tag)}</span>` : '';
       if (!g.ready) {
-        return `<div class="game-card is-soon">
-          <div class="gc-cover"><span class="gc-emoji">${g.emoji}</span></div>
-          <div class="gc-body">
-            <h3>${esc(g.name)}</h3>
-            <p>${esc(g.desc)}</p>
-            <span class="gc-play">即将上线</span>
-          </div>
+        return `<div class="g-row is-soon">
+          <span class="g-name">${esc(g.name)}</span>
+          <span class="g-desc">${esc(g.desc)}</span>
+          ${tag}
+          <span class="g-go">待定</span>
         </div>`;
       }
-      return `<a class="game-card" href="${g.href}" style="--c1:${g.c1};--c2:${g.c2}">
-        <div class="gc-cover">
-          <span class="gc-emoji">${g.emoji}</span>
-          ${g.tag ? `<span class="gc-tag">${esc(g.tag)}</span>` : ''}
-        </div>
-        <div class="gc-body">
-          <h3>${esc(g.name)}</h3>
-          <p>${esc(g.desc)}</p>
-          <span class="gc-play">开始游戏</span>
-        </div>
+      return `<a class="g-row" href="${g.href}">
+        <span class="g-name">${esc(g.name)}</span>
+        <span class="g-desc">${esc(g.desc)}</span>
+        ${tag}
+        <span class="g-go">开始 →</span>
       </a>`;
     }).join('');
 
@@ -276,7 +251,7 @@
 
   function renderLinks() {
     $('#miniLinks').innerHTML = SITE_LINKS.map(
-      (l) => `<a class="mini-link" href="${l.href}"><span>${l.emoji}</span>${esc(l.name)}</a>`
+      (l) => `<a class="mini-link" href="${l.href}">${esc(l.name)}</a>`
     ).join('');
   }
 
@@ -440,7 +415,7 @@
     const msgs = ls.get(CHAT_PREFIX + activeId, []);
     const body = $('#chatBody');
     if (!msgs.length) {
-      body.innerHTML = `<div class="chat-empty">还没有聊天记录<br />打个招呼，或者点右上角「一起玩」邀请 TA</div>`;
+      body.innerHTML = `<div class="chat-empty">还没说过话<br />打个招呼，或点右上角「一起玩」直接拉一局</div>`;
       rendered.id = activeId;
       rendered.count = 0;
       return;
@@ -886,10 +861,9 @@
     $('#gpList').innerHTML = list.length
       ? list
           .map(
-            (g) => `<button class="gp-item" data-game="${esc(g.id)}" style="--c1:${g.c1};--c2:${g.c2}"${
+            (g) => `<button class="gp-item" data-game="${esc(g.id)}" ${
               st.online ? '' : ' disabled'
             }>
-            <span class="gp-emoji">${g.emoji}</span>
             <span class="gp-body"><b>${esc(g.name)}</b><em>${esc(g.desc)}</em></span>
             <span class="gp-go">邀请 →</span>
           </button>`
@@ -899,11 +873,13 @@
 
     $('#gamePicker').classList.add('show');
     $('#gamePicker').setAttribute('aria-hidden', 'false');
+    document.body.classList.add('picking');
   }
 
   function closeGamePicker() {
     $('#gamePicker').classList.remove('show');
     $('#gamePicker').setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('picking');
     inviteFor = null;
   }
 
