@@ -110,8 +110,10 @@
 .hf-empty.hidden{display:none}
 .hf-foot{padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(20,22,31,.08)}
 .hf-foot a{display:block;text-align:center;font:600 12px/1 -apple-system,sans-serif;color:#4f46e5;text-decoration:none;padding:10px;border-radius:10px;background:rgba(79,70,229,.07)}
-.hf-banner{position:fixed;top:12px;left:50%;transform:translate(-50%,-140%);z-index:85;display:flex;align-items:center;gap:10px;width:min(440px,calc(100vw - 24px));padding:10px 12px;border-radius:16px;background:#fff;border:1px solid rgba(20,22,31,.08);box-shadow:0 24px 48px -26px rgba(20,22,31,.85);transition:transform .28s cubic-bezier(.22,1,.36,1)}
-.hf-banner.show{transform:translate(-50%,0)}
+/* 隐藏状态用 opacity/visibility，不要只靠位移：
+   横幅的 top 会跟着页头高度往下挪，位移量就不够把它移出视口了 */
+.hf-banner{position:fixed;top:12px;left:50%;z-index:85;display:flex;align-items:center;gap:10px;width:min(440px,calc(100vw - 24px));padding:10px 12px;border-radius:16px;background:#fff;border:1px solid rgba(20,22,31,.08);box-shadow:0 24px 48px -26px rgba(20,22,31,.85);opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,-10px);transition:opacity .18s ease,transform .26s cubic-bezier(.22,1,.36,1),visibility .26s}
+.hf-banner.show{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0)}
 .hf-avatar{width:34px;height:34px;flex:0 0 34px;border-radius:11px;display:grid;place-items:center;color:#fff;font:700 14px/1 sans-serif;background:linear-gradient(135deg,#6366f1,#a855f7)}
 .hf-text{flex:1;min-width:0;font:400 12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#4a5064}
 .hf-text b{color:#14161f}
@@ -228,7 +230,12 @@
     });
     window.addEventListener('resize', placeBanner, { passive: true });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && open) toggle(false);
+      if (e.key !== 'Escape') return;
+      if ($('#hfBanner').classList.contains('show')) {
+        replyInvite(false);
+        return;
+      }
+      if (open) toggle(false);
     });
     $('#hfBanner').addEventListener('click', (e) => {
       if (e.target.closest('[data-hfignore]')) {
@@ -274,11 +281,31 @@
     const banner = $('#hfBanner');
     if (!banner) return;
     const head = document.querySelector('header');
-    const top = head ? Math.max(10, Math.round(head.getBoundingClientRect().bottom) + 8) : 12;
-    banner.style.top = top + 'px';
+    const base = head ? Math.round(head.getBoundingClientRect().bottom) + 8 : 12;
+    /* 小屏时别把横幅顶到屏幕中间，最多占到视口 1/4 处 */
+    const maxTop = Math.max(12, Math.round(window.innerHeight * 0.25));
+    banner.style.top = Math.min(Math.max(10, base), maxTop) + 'px';
+  }
+
+  /* 统一的关闭入口：类名、计时器、待处理邀请一起清，避免留下“关了还在”的状态 */
+  function hideInvite() {
+    const banner = $('#hfBanner');
+    if (banner) banner.classList.remove('show');
+    clearTimeout(showInvite._t);
+    pendingInvite = null;
   }
 
   function showInvite(msg) {
+    const banner = $('#hfBanner');
+    const showing = banner.classList.contains('show');
+    const same =
+      showing &&
+      pendingInvite &&
+      msg.from &&
+      pendingInvite.from &&
+      msg.from.id === pendingInvite.from.id &&
+      String(msg.code || '') === String(pendingInvite.code || '');
+
     pendingInvite = msg;
     placeBanner();
     const nick = (msg.from && msg.from.nick) || '好友';
@@ -286,18 +313,23 @@
     $('#hfFromAvatar').textContent = nick.slice(0, 1);
     $('#hfGame').textContent = msg.gameName || '游戏';
     $('#hfCode').textContent = msg.code || '----';
-    $('#hfBanner').classList.add('show');
+    banner.classList.add('show');
+
+    /* 同一条邀请被重复推送：不重置 30 秒计时，避免一直挂着不走 */
+    if (same) return;
     clearTimeout(showInvite._t);
-    showInvite._t = setTimeout(() => $('#hfBanner').classList.remove('show'), 30000);
+    showInvite._t = setTimeout(() => hideInvite(), 30000);
   }
 
   function replyInvite(accept) {
     const inv = pendingInvite;
-    if (!inv) return;
+    if (!inv) {
+      hideInvite();
+      return;
+    }
     const from = inv.from && inv.from.id;
     if (from) cfg.send({ t: 'invite-reply', to: from, accept, code: inv.code });
-    $('#hfBanner').classList.remove('show');
-    pendingInvite = null;
+    hideInvite();
     if (!accept) return;
     if (!inv.game || inv.game === cfg.game.id) {
       cfg.joinRoom(inv.code);
