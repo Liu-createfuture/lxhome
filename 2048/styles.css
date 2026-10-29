@@ -206,10 +206,10 @@ body::before {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 0;
-  background: #ddd8c9;
-  border: 0;
-  box-shadow: none;
+  border-radius: 18px;
+  background: #e7e5f0;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 30px 60px -40px rgba(24, 30, 62, 0.8);
   touch-action: none;
   overflow: hidden;
 }
@@ -224,8 +224,8 @@ body::before {
   padding: var(--gap);
 }
 .cell-bg {
-  border-radius: 0;
-  background: rgba(247, 245, 239, 0.62);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .tiles {
@@ -245,12 +245,12 @@ body::before {
   height: 100%;
   display: grid;
   place-items: center;
-  border-radius: 0;
+  border-radius: 10px;
   font-weight: 800;
   font-family: var(--font);
   letter-spacing: -0.5px;
-  background: #e9e5d9;
-  color: #55524a;
+  background: #eee4da;
+  color: #776e65;
   transition: background 0.12s ease, color 0.12s ease;
 }
 
@@ -278,19 +278,56 @@ body::before {
   }
 }
 
-/* 数字配色：由浅到深的墨阶，1024 起转红 */
-.face.v2 { background: #e9e5d9; color: #55524a; }
-.face.v4 { background: #ded9c9; color: #4a473f; }
-.face.v8 { background: #cec7b2; color: #3d3a33; }
-.face.v16 { background: #bcb49c; color: #2c2a24; }
-.face.v32 { background: #a29a81; color: #1a1916; }
-.face.v64 { background: #837b64; color: #f7f5ef; }
-.face.v128 { background: #5f5948; color: #f7f5ef; }
-.face.v256 { background: #423e33; color: #f7f5ef; }
-.face.v512 { background: #26241e; color: #f7f5ef; }
-.face.v1024 { background: #bc2e1e; color: #fbf9f3; }
-.face.v2048 { background: #8f1f13; color: #fbf9f3; }
-.face.vsuper { background: #1a1916; color: #fbf9f3; }
+/* 数字配色 */
+.face.v2 {
+  background: #eee4da;
+  color: #776e65;
+}
+.face.v4 {
+  background: #ede0c8;
+  color: #776e65;
+}
+.face.v8 {
+  background: #f2b179;
+  color: #fff;
+}
+.face.v16 {
+  background: #f59563;
+  color: #fff;
+}
+.face.v32 {
+  background: #f67c5f;
+  color: #fff;
+}
+.face.v64 {
+  background: #f65e3b;
+  color: #fff;
+}
+.face.v128 {
+  background: #edcf72;
+  color: #fff;
+}
+.face.v256 {
+  background: #edcc61;
+  color: #fff;
+}
+.face.v512 {
+  background: #edc850;
+  color: #fff;
+}
+.face.v1024 {
+  background: #edc53f;
+  color: #fff;
+}
+.face.v2048 {
+  background: linear-gradient(135deg, #edc22e, #f0a91b);
+  color: #fff;
+  box-shadow: 0 0 24px rgba(237, 194, 46, 0.55);
+}
+.face.vsuper {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+}
 
 /* ---------------- 结算浮层 ---------------- */
 
@@ -299,7 +336,8 @@ body::before {
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(242, 240, 234, 0.9);
+  background: rgba(240, 238, 248, 0.86);
+  backdrop-filter: blur(4px);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.24s ease;
@@ -309,10 +347,6 @@ body::before {
   opacity: 1;
   pointer-events: auto;
 }
-.ov-emoji {
-  display: none;
-}
-
 .overlay-card {
   text-align: center;
   padding: 8px 10px;
@@ -468,21 +502,4 @@ body::before {
   .actions .btn {
     flex: 1;
   }
-}
-
-
-/* ---------------- 收尾：全站直角，压掉各断点残留的圆角 ---------------- */
-.board,
-.tile,
-.cell,
-.cell-bg,
-.face,
-.board-shell,
-.canvas-wrap,
-.lv-chip,
-.dpad button,
-.tbtn,
-.modal-card,
-.overlay-card {
-  border-radius: 0;
 }

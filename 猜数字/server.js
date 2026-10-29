@@ -45,7 +45,6 @@ const rooms = new Map();
 /* 大厅社交层（好友在线状态 / 私聊 / 邀请） */
 const social = createSocial(sendTo);
 
-
 function onlineCount() {
   let n = 0;
   for (const room of rooms.values()) {

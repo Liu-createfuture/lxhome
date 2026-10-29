@@ -72,60 +72,59 @@
   /* ---------------- 样式与 DOM ---------------- */
 
   const CSS = `
-.hf-btn{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:0;border-radius:0;background:#1a1916;color:#f2f0ea;box-shadow:0 20px 40px -24px rgba(26,25,22,.9);font:600 12.5px/1 var(--font,-apple-system,sans-serif);cursor:pointer}
-.hf-btn:hover{background:#000}
-.hf-btn b{display:inline-block;min-width:16px;height:16px;padding:0 4px;margin-left:2px;background:#bc2e1e;color:#fbf9f3;font:700 10px/16px var(--font,sans-serif);text-align:center}
+.hf-btn{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:999px;border:1px solid rgba(20,22,31,.1);background:rgba(255,255,255,.92);backdrop-filter:blur(10px);box-shadow:0 14px 30px -18px rgba(20,22,31,.9);font:600 12.5px/1 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#333;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.hf-btn:hover{transform:translateY(-1px);box-shadow:0 18px 32px -18px rgba(20,22,31,.9)}
+.hf-btn b{position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#e0483c;color:#fff;font:700 10px/17px ui-monospace,monospace;text-align:center}
 .hf-btn b.hidden{display:none}
-.hf-btn.is-inline{position:relative;right:auto;bottom:auto;height:32px;padding:0 10px;gap:5px;background:#e7e4db;color:#1a1916;box-shadow:none;font-size:12px}
-.hf-btn.is-inline:hover{background:#dbd7cb}
-.hf-btn.is-inline b{min-width:15px;height:15px;line-height:15px;font-size:9px}
+.hf-btn.is-inline{position:relative;right:auto;bottom:auto;height:32px;padding:0 10px;gap:5px;border-radius:9px;background:#fff;box-shadow:none;font-size:12px;backdrop-filter:none}
+.hf-btn.is-inline:hover{transform:none;box-shadow:0 6px 14px -10px rgba(20,22,31,.9)}
+.hf-btn.is-inline b{position:static;min-width:15px;height:15px;padding:0 4px;font-size:9px;line-height:15px;transform:none}
+@media (max-width:640px){.hf-btn.is-inline{padding:0 8px;font-size:11.5px}.hf-btn.is-inline span:first-child{display:none}}
 .hf-sheet{position:fixed;inset:0;z-index:80;display:none}
 .hf-sheet.open{display:block}
-.hf-backdrop{position:absolute;inset:0;background:rgba(26,25,22,.34);animation:hfFade .18s ease}
+.hf-backdrop{position:absolute;inset:0;background:rgba(16,18,28,.36);backdrop-filter:blur(3px);animation:hfFade .18s ease}
 @keyframes hfFade{from{opacity:0}}
-.hf-panel{position:absolute;top:0;right:0;bottom:0;width:360px;max-width:100vw;background:#f7f5ef;color:#1a1916;display:flex;flex-direction:column;box-shadow:-30px 0 70px -40px rgba(26,25,22,.8);animation:hfSlide .24s cubic-bezier(.22,1,.36,1)}
+.hf-panel{position:absolute;top:0;right:0;bottom:0;width:344px;max-width:92vw;background:#fff;display:flex;flex-direction:column;box-shadow:-30px 0 60px -40px rgba(16,18,28,.7);animation:hfSlide .26s cubic-bezier(.22,1,.36,1)}
 @keyframes hfSlide{from{transform:translateX(100%)}}
-.hf-head{display:flex;align-items:center;gap:10px;padding:20px 18px 14px}
-.hf-head b{font:800 18px/1.2 var(--font,sans-serif);letter-spacing:-.01em}
-.hf-head span{font:600 12.5px/1 var(--font,sans-serif);color:#8c877b}
-.hf-head button{margin-left:auto;height:28px;padding:0 10px;border:0;border-radius:0;background:transparent;color:#8c877b;font:600 12px/1 var(--font,sans-serif);cursor:pointer}
-.hf-head button:hover{background:#e7e4db;color:#1a1916}
-.hf-note{padding:0 18px 10px;font-size:11.5px;color:#8c877b}
-.hf-list{flex:1;overflow-y:auto;padding:0 8px 16px}
-.hf-row{display:flex;align-items:center;gap:11px;padding:11px 10px}
-.hf-row:hover{background:#e7e4db}
-.hf-a{position:relative;width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;background:#e7e4db;color:#1a1916;font:700 14px/1 var(--font,sans-serif)}
-.hf-a i{position:absolute;right:-3px;bottom:-3px;width:8px;height:8px;border-radius:50%;background:#c7c2b4}
-.hf-a i.on{background:#2f7d55;box-shadow:0 0 0 2px #f7f5ef}
-.hf-a i.busy{background:#bc2e1e;box-shadow:0 0 0 2px #f7f5ef}
+.hf-head{display:flex;align-items:center;gap:8px;padding:16px 16px 10px}
+.hf-head b{font:700 16px/1 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#14161f}
+.hf-head span{font:600 11px/18px ui-monospace,monospace;padding:0 7px;border-radius:9px;background:#eef1f8;color:#4a5064}
+.hf-head button{margin-left:auto;width:30px;height:30px;border:0;border-radius:9px;background:#f6f7fb;color:#4a5064;font-size:14px;cursor:pointer}
+.hf-note{padding:0 16px 10px;font-size:11px;color:#8b91a5}
+.hf-list{flex:1;overflow-y:auto;padding:0 10px 16px}
+.hf-row{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:13px}
+.hf-row:hover{background:#f6f7fb}
+.hf-a{position:relative;width:36px;height:36px;flex:0 0 36px;border-radius:12px;display:grid;place-items:center;color:#fff;font:700 14px/1 -apple-system,sans-serif;background:linear-gradient(135deg,#6366f1,#a855f7)}
+.hf-a i{position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;border-radius:50%;background:#c7ccda;border:2px solid #fff}
+.hf-a i.on{background:#0ea472}
+.hf-a i.busy{background:#f0a91b}
 .hf-m{min-width:0;flex:1}
-.hf-m b{display:block;font:700 13.5px/1.35 var(--font,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hf-m em{font-style:normal;font-size:11.5px;color:#8c877b}
-.hf-m em.on{color:#2f7d55}
-.hf-m em.busy{color:#bc2e1e}
-.hf-inv{flex:0 0 auto;height:28px;padding:0 12px;border:0;border-radius:0;background:#1a1916;color:#f2f0ea;font:700 11.5px/1 var(--font,sans-serif);cursor:pointer}
-.hf-inv:disabled{background:#e7e4db;color:#8c877b;cursor:not-allowed}
-.hf-inv:not(:disabled):hover{background:#bc2e1e}
-.hf-empty{padding:26px 18px;text-align:center;font-size:12.5px;color:#8c877b;line-height:1.8}
+.hf-m b{display:block;font:600 13px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#14161f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hf-m em{font-style:normal;font-size:10.5px;color:#8b91a5}
+.hf-m em.on{color:#0b7a55}
+.hf-m em.busy{color:#b06f00}
+.hf-inv{flex:0 0 auto;height:28px;padding:0 11px;border-radius:9px;border:1px solid rgba(79,70,229,.25);background:rgba(79,70,229,.08);color:#4f46e5;font:600 11.5px/1 -apple-system,sans-serif;cursor:pointer}
+.hf-inv:disabled{opacity:.42;cursor:not-allowed}
+.hf-inv:not(:disabled):hover{background:#4f46e5;color:#fff}
+.hf-empty{padding:24px 18px;text-align:center;font-size:12px;color:#8b91a5;line-height:1.8}
 .hf-empty.hidden{display:none}
-.hf-foot{padding:10px 18px calc(16px + env(safe-area-inset-bottom,0px))}
-.hf-foot a{display:block;text-align:center;font:700 12.5px/1 var(--font,sans-serif);color:#f2f0ea;text-decoration:none;padding:12px;background:#1a1916}
-.hf-banner{position:fixed;top:12px;left:50%;z-index:85;opacity:0;visibility:hidden;transform:translate(-50%,-10px);display:flex;align-items:center;gap:12px;width:min(440px,calc(100vw - 24px));padding:13px 14px;border-radius:0;background:#1a1916;color:#f2f0ea;box-shadow:0 26px 60px -30px rgba(26,25,22,.9);transition:opacity .2s ease,transform .26s cubic-bezier(.22,1,.36,1),visibility .2s}
-.hf-banner.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
-.hf-avatar{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;background:#f2f0ea;color:#1a1916;font:700 14px/1 var(--font,sans-serif)}
-.hf-text{flex:1;min-width:0;font:400 12.5px/1.5 var(--font,sans-serif)}
-.hf-text b{font-weight:700}
-.hf-text span#hfGame{font-weight:700}
-.hf-text small{display:block;font-size:11px;color:rgba(242,240,234,.6)}
+.hf-foot{padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(20,22,31,.08)}
+.hf-foot a{display:block;text-align:center;font:600 12px/1 -apple-system,sans-serif;color:#4f46e5;text-decoration:none;padding:10px;border-radius:10px;background:rgba(79,70,229,.07)}
+.hf-banner{position:fixed;top:12px;left:50%;transform:translate(-50%,-140%);z-index:85;display:flex;align-items:center;gap:10px;width:min(440px,calc(100vw - 24px));padding:10px 12px;border-radius:16px;background:#fff;border:1px solid rgba(20,22,31,.08);box-shadow:0 24px 48px -26px rgba(20,22,31,.85);transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.hf-banner.show{transform:translate(-50%,0)}
+.hf-avatar{width:34px;height:34px;flex:0 0 34px;border-radius:11px;display:grid;place-items:center;color:#fff;font:700 14px/1 sans-serif;background:linear-gradient(135deg,#6366f1,#a855f7)}
+.hf-text{flex:1;min-width:0;font:400 12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#4a5064}
+.hf-text b{color:#14161f}
+.hf-text small{display:block;font-size:10.5px;color:#8b91a5}
 .hf-actions{display:flex;gap:6px;flex:0 0 auto}
-.hf-actions button{height:30px;padding:0 12px;border:0;border-radius:0;font:700 11.5px/1 var(--font,sans-serif);cursor:pointer}
-.hf-actions [data-hfaccept]{background:#bc2e1e;color:#fbf9f3}
-.hf-actions [data-hfignore]{background:transparent;color:rgba(242,240,234,.7)}
+.hf-actions button{height:30px;padding:0 11px;border-radius:9px;border:0;font:600 11.5px/1 -apple-system,sans-serif;cursor:pointer}
+.hf-actions [data-hfaccept]{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff}
+.hf-actions [data-hfignore]{background:#f6f7fb;color:#4a5064}
 .hf-toasts{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:95;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
-.hf-toast{padding:9px 15px;border-radius:0;background:#1a1916;color:#f2f0ea;font:500 12px/1.4 var(--font,sans-serif);animation:hfToast .2s ease}
+.hf-toast{padding:8px 14px;border-radius:11px;background:rgba(20,22,31,.9);color:#fff;font:500 12px/1.4 -apple-system,sans-serif;animation:hfToast .2s ease}
 @keyframes hfToast{from{opacity:0;transform:translateY(-6px)}}
 @media (max-width:640px){
-  .hf-panel{width:100%}
+  .hf-panel{width:100%;max-width:none}
   .hf-banner{flex-wrap:wrap}
   .hf-actions{width:100%}
   .hf-actions button{flex:1;height:34px}
@@ -141,21 +140,21 @@
 
     const wrap = document.createElement('div');
     wrap.innerHTML = `
-      <button class="hf-btn" id="hfBtn" type="button"><span>好友</span><b class="hidden" id="hfBadge">0</b></button>
+      <button class="hf-btn" id="hfBtn" type="button"><span>👥</span><span>好友</span><b class="hidden" id="hfBadge">0</b></button>
       <div class="hf-sheet" id="hfSheet" aria-hidden="true">
         <div class="hf-backdrop" data-hfclose></div>
         <aside class="hf-panel" role="dialog" aria-label="好友">
-          <div class="hf-head"><b>好友</b><span id="hfCount">0</span><button type="button" data-hfclose aria-label="关闭">关闭</button></div>
-          <div class="hf-note">在线状态跟着大厅走，点「邀请」直接开房</div>
+          <div class="hf-head"><b>好友</b><span id="hfCount">0</span><button type="button" data-hfclose aria-label="关闭">✕</button></div>
+          <div class="hf-note">在线状态实时同步 · 点「邀请」直接开房</div>
           <div class="hf-list" id="hfList"></div>
           <div class="hf-empty" id="hfEmpty">还没有好友<br />去大厅加一个，就能邀请一起玩</div>
-          <div class="hf-foot"><a href="../">回大厅加好友</a></div>
+          <div class="hf-foot"><a href="../">← 回大厅加好友</a></div>
         </aside>
       </div>
       <div class="hf-banner" id="hfBanner">
         <div class="hf-avatar" id="hfFromAvatar">友</div>
-        <div class="hf-text"><b id="hfFrom">好友</b> 拉你一起玩 <span id="hfGame">猜数字</span><small>房间 <span id="hfCode">----</span></small></div>
-        <div class="hf-actions"><button type="button" data-hfaccept>进去</button><button type="button" data-hfignore>算了</button></div>
+        <div class="hf-text"><b id="hfFrom">好友</b> 邀请你一起玩「<span id="hfGame">猜数字</span>」<small>房间号 <span id="hfCode">----</span></small></div>
+        <div class="hf-actions"><button type="button" data-hfaccept>进入房间</button><button type="button" data-hfignore>忽略</button></div>
       </div>
       <div class="hf-toasts" id="hfToasts"></div>
     `;

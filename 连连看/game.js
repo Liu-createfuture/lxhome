@@ -11,8 +11,7 @@
   const ROWS = 6;
   const PAD = 1; // 外圈用于绕行
   const RING = 0.28; // 外圈宽度（相对一格的比例，与样式里的 0.28fr 对应）
-  /* 用几何图形代替水果表情：纸墨风格里更干净，也更好认 */
-  const EMOJIS = ['●', '■', '▲', '◆', '▼', '◀', '▶', '✚', '✦', '▣', '◐', '⬢'];
+  const EMOJIS = ['🍎', '🍇', '🍋', '🍉', '🍓', '🥝', '🍒', '🥑', '🍍', '🥕', '🌽', '🍄'];
   const TOTAL_TIME = 180;
   const HINT_MAX = 3;
   const SHUFFLE_MAX = 2;
